@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль</title>
+</head>
+<body>
+    <h1>Пользователь авторизован</h1>
+
+    <div th:if="${error != null}">
+        <h2>Ошибка на странице профиля</h2>
+        <pre th:text="${error}"></pre>
+        <hr>
+    </div>
+
+    <h2>Данные пользователя</h2>
+
+    <p>
+        <strong>Имя:</strong>
+        <span th:text="${userName}">Имя не получено</span>
+    </p>
+
+    <p>
+        <strong>Email:</strong>
+        <span th:text="${userEmail}">Email не получен</span>
+    </p>
+
+    <hr>
+
+    <h2>Информация о токене доступа</h2>
+
+    <p>
+        <strong>Token Type:</strong>
+        <span th:text="${tokenType}">Token Type</span>
+    </p>
+
+    <p>
+        <strong>Scope:</strong>
+        <span th:text="${scopes}">Scope</span>
+    </p>
+
+    <p>
+        <strong>Access Token истекает:</strong>
+        <span th:text="${accessTokenExpiresAt}">Время истечения</span>
+    </p>
+
+    <p>
+        <strong>Expires In:</strong>
+        <span th:text="${accessTokenExpiresIn}">Время жизни</span>
+    </p>
+
+    <hr>
+
+    <h2>Маскированные токены</h2>
+
+    <p>
+        <strong>Access Token:</strong>
+    </p>
+    <pre th:text="${accessToken}">Access Token</pre>
+
+    <p>
+        <strong>ID Token:</strong>
+    </p>
+    <pre th:text="${idToken}">ID Token</pre>
+
+    <p>
+        <strong>Refresh Token:</strong>
+    </p>
+    <pre th:text="${refreshToken}">Refresh Token</pre>
+
+    <hr>
+
+    <h2>Краткое сравнение токенов</h2>
+
+    <p>
+        Эти данные используются для проверки обновления токенов без вывода полного содержимого JWT.
+    </p>
+
+    <p>
+        <strong>Access Token:</strong>
+    </p>
+    <pre th:text="${accessTokenCompareInfo}">Access Token Compare Info</pre>
+
+    <p>
+        <strong>ID Token:</strong>
+    </p>
+    <pre th:text="${idTokenCompareInfo}">ID Token Compare Info</pre>
+
+    <hr>
+    <hr>
+
+    <h2>Декодированное содержимое JWT</h2>
+
+    <p>
+        <strong>ID Token Payload:</strong>
+    </p>
+    <pre th:text="${idTokenPayload}">ID Token Payload</pre>
+
+    <p>
+        <strong>Access Token Payload:</strong>
+    </p>
+    <pre th:text="${accessTokenPayload}">Access Token Payload</pre>
+    
+    <p>
+        <strong>Последнее обновление токенов:</strong>
+        <span th:text="${lastUpdatedAt}">Время последнего обновления</span>
+    </p>
+    <p>
+    <strong>Refresh Token выдан:</strong>
+    <span th:text="${refreshTokenIssuedAt}">Время выдачи Refresh Token</span>
+    </p>
+
+    <p>
+        <strong>Refresh Token истекает:</strong>
+        <span th:text="${refreshTokenExpiresAt}">Время истечения Refresh Token</span>
+    </p>
+    <h2>Действия</h2>
+
+    <p>
+        <a href="/userinfo">
+            <button type="button">Получить UserInfo</button>
+        </a>
+    </p>
+
+    <form th:action="@{/refresh-token}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button type="submit">Обновить токены</button>
+    </form>
+
+    <br>
+
+    <form th:action="@{/logout}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button type="submit">Выйти</button>
+    </form>
+    <p>
+    <a href="/">
+        <button type="button">На главную</button>
+    </a>
+    </p>
+</body>
+</html>

@@ -1,0 +1,108 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Результат обновления токенов</title>
+</head>
+<body>
+    <h1>Результат обновления токенов</h1>
+
+    <p>
+        <strong>Статус:</strong>
+        <span th:text="${message}">Сообщение</span>
+    </p>
+
+    <div th:if="${success}">
+        <h2>Обновление выполнено</h2>
+
+        <p>
+            Новые токены получены и сохранены. Полные значения токенов на страницу не выводятся.
+        </p>
+
+        <p>
+            <strong>Access Token:</strong>
+            <span th:text="${newAccessToken}">Маскированный Access Token</span>
+        </p>
+
+        <p>
+            <strong>Refresh Token:</strong>
+            <span th:text="${newRefreshToken}">Маскированный Refresh Token</span>
+        </p>
+
+        <p>
+            <strong>ID Token:</strong>
+            <span th:text="${newIdToken}">Маскированный ID Token</span>
+        </p>
+
+        <p>
+            <strong>Token Type:</strong>
+            <span th:text="${tokenType}">Bearer</span>
+        </p>
+
+        <p>
+            <strong>Scope:</strong>
+            <span th:text="${scope}">Scope</span>
+        </p>
+
+        <p>
+            <strong>Access Token истекает:</strong>
+            <span th:text="${expiresAt}">Время истечения</span>
+        </p>
+
+        <p>
+            <strong>Expires In:</strong>
+            <span th:text="${expiresIn}">Время жизни</span>
+            секунд
+        </p>
+
+        <p>
+            <strong>Последнее обновление токенов:</strong>
+            <span th:text="${lastUpdatedAt}">Время обновления</span>
+        </p>
+
+        <h2>Ответ Token Endpoint</h2>
+
+        <p>
+            Ответ Token Endpoint обработан успешно.
+        </p>
+    </div>
+
+    <div th:if="${!success}">
+        <h2>Ошибка обновления</h2>
+
+        <p th:if="${statusCode}">
+            <strong>HTTP статус:</strong>
+            <span th:text="${statusCode}">Статус</span>
+        </p>
+
+        <pre th:if="${responseBody}" th:text="${responseBody}">Ответ ошибки</pre>
+
+        <p th:if="${tokenEndpointResponse}">
+            <strong>Диагностика:</strong>
+            <span th:text="${tokenEndpointResponse}">Диагностика</span>
+        </p>
+    </div>
+
+    <hr>
+
+    <p>
+        <a href="/">
+            <button type="button">На главную</button>
+        </a>
+    </p>
+
+    <p>
+        <a href="/profile">
+            <button type="button">Вернуться в профиль</button>
+        </a>
+    </p>
+
+    <p>
+        <a href="/userinfo">
+            <button type="button">Получить UserInfo</button>
+        </a>
+    </p>
+</body>
+</html>
+```

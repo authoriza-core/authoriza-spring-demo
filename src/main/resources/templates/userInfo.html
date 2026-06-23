@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>UserInfo</title>
+</head>
+<body>
+    <h1>UserInfo Endpoint</h1>
+
+    <p>
+        <strong>Текущее время UTC:</strong>
+        <span th:text="${currentInstant}">UTC now</span>
+    </p>
+
+    <p>
+        <strong>Access Token истекает UTC:</strong>
+        <span th:text="${accessTokenExpiresAt}">Expires At</span>
+    </p>
+
+    <p>
+        <strong>Осталось жить:</strong>
+        <span th:text="${accessTokenExpiresIn}">Expires In</span>
+    </p>
+
+    <p>
+        <strong>Статус токена:</strong>
+        <span th:text="${accessTokenStatus}">Token Status</span>
+    </p>
+
+    <p>
+        <strong>Scopes:</strong>
+        <span th:text="${accessTokenScopes}">Scopes</span>
+    </p>
+
+    <hr>
+
+    <p>
+        <strong>Статус:</strong>
+        <span th:text="${message}">Сообщение</span>
+    </p>
+
+    <p>
+        <strong>UserInfo Endpoint:</strong>
+        <span th:text="${userInfoUri}">URI</span>
+    </p>
+
+    <p>
+        <strong>Время получения данных:</strong>
+        <span th:text="${receivedAt}">Время</span>
+    </p>
+
+    <p>
+        <strong>Использованный токен:</strong>
+        <span th:text="${usedTokenType}">Тип токена</span>
+    </p>
+
+    <div th:if="${success == true}">
+        <h2>Полученные данные UserInfo Endpoint</h2>
+        <pre th:text="${userInfoResponse}">UserInfo Response</pre>
+    </div>
+
+    <div th:if="${success == false}">
+        <h2>Ошибка UserInfo Endpoint</h2>
+
+        <p th:if="${statusCode != null}">
+            <strong>HTTP статус:</strong>
+            <span th:text="${statusCode}">Статус</span>
+        </p>
+
+        <pre th:if="${responseBody != null}" th:text="${responseBody}">Ошибка</pre>
+    </div>
+
+    <div th:if="${accessTokenStatusCode != null}">
+        <h2>Ошибка при попытке через Access Token</h2>
+
+        <p>
+            <strong>HTTP статус:</strong>
+            <span th:text="${accessTokenStatusCode}">Статус</span>
+        </p>
+
+        <pre th:text="${accessTokenResponseBody}">Ответ ошибки</pre>
+    </div>
+
+    <hr>
+
+    <h2>Данные пользователя из ID Token</h2>
+
+    <p>
+        <strong>Статус:</strong>
+        <span th:text="${idTokenUserDataMessage}">Статус данных из ID Token</span>
+    </p>
+
+    <div th:if="${idTokenUserDataAvailable == true}">
+        <p>
+            <strong>Subject:</strong>
+            <span th:text="${idTokenSubject}">sub</span>
+        </p>
+
+        <p>
+            <strong>Name:</strong>
+            <span th:text="${idTokenName}">name</span>
+        </p>
+
+        <p>
+            <strong>Email:</strong>
+            <span th:text="${idTokenEmail}">email</span>
+        </p>
+
+        <h3>Все claims из ID Token</h3>
+        <pre th:text="${idTokenClaims}">ID Token Claims</pre>
+    </div>
+
+    <br>
+
+    <a href="/profile">
+        <button>Вернуться в профиль</button>
+    </a>
+</body>
+</html>
