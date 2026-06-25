@@ -1,3 +1,4 @@
+
 package com.example.oidc_client.config;
 
 import java.io.IOException;
@@ -12,9 +13,9 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.stereotype.Component;
@@ -24,17 +25,20 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.example.oidc_client.storage.AuthTokenStorageService;
+import com.example.oidc_client.storage.StoredAuthData;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 @Component
 public class AccessTokenAutoRefreshFilter extends OncePerRequestFilter {
 
     private static final String REGISTRATION_ID = "autoriza";
     private static final Duration REFRESH_BEFORE_EXPIRATION = Duration.ofMinutes(5);
+    private static final Duration REFRESH_TOKEN_LIFETIME = Duration.ofMinutes(15);
 
     private final OAuth2AuthorizedClientRepository authorizedClientRepository;
     private final AuthTokenStorageService tokenStorageService;
@@ -59,6 +63,15 @@ public class AccessTokenAutoRefreshFilter extends OncePerRequestFilter {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
             if (authentication instanceof OAuth2AuthenticationToken oauth2AuthenticationToken) {
+                StoredAuthData storedAuthData = tokenStorageService.findByRegistrationId(REGISTRATION_ID);
+
+                if (isRefreshTokenExpired(storedAuthData)) {
+                    clearSavedAuthData(request);
+
+                    response.sendRedirect("/oauth2/authorization/" + REGISTRATION_ID);
+                    return;
+                }
+
                 OAuth2AuthorizedClient authorizedClient =
                         authorizedClientRepository.loadAuthorizedClient(
                                 REGISTRATION_ID,
@@ -70,16 +83,37 @@ public class AccessTokenAutoRefreshFilter extends OncePerRequestFilter {
                     refreshAccessToken(
                             authorizedClient,
                             oauth2AuthenticationToken,
+                            storedAuthData,
                             request,
                             response
                     );
                 }
             }
+
+            filterChain.doFilter(request, response);
         } catch (Exception exception) {
             exception.printStackTrace();
+
+            clearSavedAuthData(request);
+
+            if (!response.isCommitted()) {
+                response.sendRedirect("/oauth2/authorization/" + REGISTRATION_ID);
+            }
+        }
+    }
+
+    private boolean isRefreshTokenExpired(StoredAuthData storedAuthData) {
+        if (storedAuthData == null) {
+            return false;
         }
 
-        filterChain.doFilter(request, response);
+        Instant refreshTokenExpiresAt = storedAuthData.getRefreshTokenExpiresAt();
+
+        if (refreshTokenExpiresAt == null) {
+            return false;
+        }
+
+        return !refreshTokenExpiresAt.isAfter(Instant.now());
     }
 
     private boolean shouldRefreshAccessToken(OAuth2AuthorizedClient authorizedClient) {
@@ -108,34 +142,36 @@ public class AccessTokenAutoRefreshFilter extends OncePerRequestFilter {
     private void refreshAccessToken(
             OAuth2AuthorizedClient authorizedClient,
             OAuth2AuthenticationToken authentication,
+            StoredAuthData storedAuthData,
             HttpServletRequest request,
             HttpServletResponse response
     ) {
         ClientRegistration clientRegistration = authorizedClient.getClientRegistration();
 
+        OAuth2RefreshToken oldRefreshToken = authorizedClient.getRefreshToken();
+
         Map<String, Object> tokenResponse = requestNewTokens(
                 clientRegistration,
-                authorizedClient.getRefreshToken().getTokenValue()
+                oldRefreshToken.getTokenValue()
         );
 
         String newAccessTokenValue = tokenResponse.get("access_token").toString();
 
-        String newRefreshTokenValue = authorizedClient.getRefreshToken().getTokenValue();
+        String newRefreshTokenValue = oldRefreshToken.getTokenValue();
+
+        boolean refreshTokenRotated = false;
+
         if (tokenResponse.get("refresh_token") != null) {
             newRefreshTokenValue = tokenResponse.get("refresh_token").toString();
+            refreshTokenRotated = !newRefreshTokenValue.equals(oldRefreshToken.getTokenValue());
         }
 
-        String newIdTokenValue = "";
-        if (tokenResponse.get("id_token") != null) {
-            newIdTokenValue = tokenResponse.get("id_token").toString();
-        } else if (request.getSession().getAttribute("latestIdToken") != null) {
-            newIdTokenValue = request.getSession().getAttribute("latestIdToken").toString();
-        }
+        String newIdTokenValue = getCurrentIdTokenValue(tokenResponse, request, storedAuthData);
 
         long expiresIn = getLongValue(tokenResponse, "expires_in", 3600);
 
         Instant issuedAt = Instant.now();
-        Instant expiresAt = issuedAt.plusSeconds(expiresIn);
+        Instant accessTokenExpiresAt = issuedAt.plusSeconds(expiresIn);
 
         Set<String> scopes = parseScopes(tokenResponse.get("scope"));
 
@@ -147,13 +183,27 @@ public class AccessTokenAutoRefreshFilter extends OncePerRequestFilter {
                 OAuth2AccessToken.TokenType.BEARER,
                 newAccessTokenValue,
                 issuedAt,
-                expiresAt,
+                accessTokenExpiresAt,
                 scopes
+        );
+
+        Instant refreshTokenIssuedAt = refreshTokenRotated
+                ? issuedAt
+                : oldRefreshToken.getIssuedAt();
+
+        if (refreshTokenIssuedAt == null) {
+            refreshTokenIssuedAt = issuedAt;
+        }
+
+        Instant refreshTokenExpiresAt = calculateRefreshTokenExpiresAt(
+                storedAuthData,
+                refreshTokenRotated,
+                refreshTokenIssuedAt
         );
 
         OAuth2RefreshToken newRefreshToken = new OAuth2RefreshToken(
                 newRefreshTokenValue,
-                issuedAt
+                refreshTokenIssuedAt
         );
 
         OAuth2AuthorizedClient updatedClient = new OAuth2AuthorizedClient(
@@ -178,15 +228,64 @@ public class AccessTokenAutoRefreshFilter extends OncePerRequestFilter {
                 newAccessTokenValue,
                 newRefreshTokenValue,
                 newIdTokenValue,
-                newAccessToken.getIssuedAt(),
-                newAccessToken.getExpiresAt(),
-                newRefreshToken.getIssuedAt(),
-                null,
-                null,
-                newAccessToken.getScopes()
+                issuedAt,
+                accessTokenExpiresAt,
+                refreshTokenIssuedAt,
+                refreshTokenExpiresAt,
+                storedAuthData != null ? storedAuthData.getIdTokenIssuedAt() : null,
+                storedAuthData != null ? storedAuthData.getIdTokenExpiresAt() : null,
+                scopes
         );
 
         System.out.println("Access Token автоматически обновлён за 5 минут до истечения");
+    }
+
+    private String getCurrentIdTokenValue(
+            Map<String, Object> tokenResponse,
+            HttpServletRequest request,
+            StoredAuthData storedAuthData
+    ) {
+        if (tokenResponse.get("id_token") != null) {
+            return tokenResponse.get("id_token").toString();
+        }
+
+        Object latestIdToken = request.getSession().getAttribute("latestIdToken");
+
+        if (latestIdToken != null) {
+            return latestIdToken.toString();
+        }
+
+        if (storedAuthData != null && storedAuthData.getIdToken() != null) {
+            return storedAuthData.getIdToken();
+        }
+
+        return "";
+    }
+
+    private Instant calculateRefreshTokenExpiresAt(
+            StoredAuthData storedAuthData,
+            boolean refreshTokenRotated,
+            Instant refreshTokenIssuedAt
+    ) {
+        if (!refreshTokenRotated
+                && storedAuthData != null
+                && storedAuthData.getRefreshTokenExpiresAt() != null) {
+            return storedAuthData.getRefreshTokenExpiresAt();
+        }
+
+        return refreshTokenIssuedAt.plus(REFRESH_TOKEN_LIFETIME);
+    }
+
+    private void clearSavedAuthData(HttpServletRequest request) {
+        tokenStorageService.deleteByRegistrationId(REGISTRATION_ID);
+
+        SecurityContextHolder.clearContext();
+
+        HttpSession session = request.getSession(false);
+
+        if (session != null) {
+            session.invalidate();
+        }
     }
 
     private Map<String, Object> requestNewTokens(
@@ -240,3 +339,4 @@ public class AccessTokenAutoRefreshFilter extends OncePerRequestFilter {
         return scopes;
     }
 }
+

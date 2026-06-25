@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 
+
 @Entity
 public class StoredAuthData {
 
@@ -37,7 +38,16 @@ public class StoredAuthData {
 
     private Instant lastUpdatedAt;
 
+    private Instant refreshTokenExpiresAt;
 
+
+    public Instant getRefreshTokenExpiresAt() {
+        return refreshTokenExpiresAt;
+    }
+
+    public void setRefreshTokenExpiresAt(Instant refreshTokenExpiresAt) {
+        this.refreshTokenExpiresAt = refreshTokenExpiresAt;
+    }
     public Instant getLastUpdatedAt() {
         return lastUpdatedAt;
     }

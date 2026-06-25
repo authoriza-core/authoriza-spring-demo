@@ -6,6 +6,8 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.time.Duration;
+
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
@@ -68,7 +70,7 @@ public class RestoreSessionController {
             StoredAuthData storedAuthData = tokenStorageService.findByRegistrationId("autoriza");
 
             if (storedAuthData == null || storedAuthData.getRefreshToken() == null) {
-                return "redirect:/";
+                return "redirect:/?skipRestore=true";
             }
 
             ClientRegistration clientRegistration =
@@ -144,20 +146,25 @@ public class RestoreSessionController {
                     response
             );
 
-            tokenStorageService.saveTokens(
-                    "autoriza",
-                    authentication.getName(),
-                    accessTokenValue,
-                    refreshTokenValue,
-                    idTokenValue,
-                    accessToken.getIssuedAt(),
-                    accessToken.getExpiresAt(),
-                    refreshToken.getIssuedAt(),
-                    idToken.getIssuedAt(),
-                    idToken.getExpiresAt(),
-                    accessToken.getScopes()
-            );
+                    Instant refreshTokenIssuedAt = refreshToken.getIssuedAt();
+        Instant refreshTokenExpiresAt = refreshTokenIssuedAt != null
+                ? refreshTokenIssuedAt.plus(Duration.ofMinutes(15))
+                : Instant.now().plus(Duration.ofMinutes(15));
 
+        tokenStorageService.saveTokens(
+                "autoriza",
+                authentication.getName(),
+                accessTokenValue,
+                refreshTokenValue,
+                idTokenValue,
+                accessToken.getIssuedAt(),
+                accessToken.getExpiresAt(),
+                refreshTokenIssuedAt,
+                refreshTokenExpiresAt,
+                idToken.getIssuedAt(),
+                idToken.getExpiresAt(),
+                accessToken.getScopes()
+        );
             request.getSession().setAttribute("latestIdToken", idTokenValue);
 
             return "redirect:/profile";

@@ -1,63 +1,219 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>OIDC Demo Client</title>
+    <title>OIDС Client</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 32px;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #1f2933;
+        }
+
+        .page {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            margin: 0 0 8px;
+            font-size: 32px;
+        }
+
+        .header p {
+            margin: 0;
+            color: #64748b;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .card h2 {
+            margin: 0 0 18px;
+            font-size: 22px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 12px 20px;
+            align-items: start;
+        }
+
+        .label {
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .value {
+            color: #0f172a;
+            word-break: break-word;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .status-success {
+            background: #e8f7ee;
+            color: #166534;
+        }
+
+        .status-muted {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .section-note {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: -8px;
+            margin-bottom: 18px;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .actions a,
+        .actions form {
+            margin: 0;
+        }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 11px 16px;
+            cursor: pointer;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        .secondary {
+            background: #475569;
+        }
+
+        .secondary:hover {
+            background: #334155;
+        }
+
+        .danger {
+            background: #dc2626;
+        }
+
+        .danger:hover {
+            background: #b91c1c;
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 16px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .label {
+                margin-top: 10px;
+            }
+
+            .actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>OIDC Demo Client</h1>
+<div class="page">
+    <div class="header">
+        <h1>OIDC Demo Client</h1>
+        <p>Демонстрационный клиент для работы с Авторизой.</p>
+    </div>
 
-    <div th:if="${authenticated == false}">
+    <div class="card" th:if="${authenticated == false}">
+        <h2>Вход в систему</h2>
+
         <p>
-            <strong>Статус:</strong>
-            не авторизован
+            <span class="status status-muted">Не авторизован</span>
         </p>
 
-        <p>
+        <p class="section-note">
+            Для получения токенов и открытия профиля нужно выполнить вход.
+        </p>
+
+        <div class="actions">
             <a href="/oauth2/authorization/autoriza">
                 <button type="button">Войти через Авторизу</button>
             </a>
-        </p>
-
-        <p>
-            <a href="/restore-session">
-                <button type="button">Восстановить сессию</button>
-            </a>
-        </p>
+        </div>
     </div>
 
-    <div th:if="${authenticated == true}">
-        <p>
-            <strong>Статус:</strong>
-            авторизован
-        </p>
+    <div class="card" th:if="${authenticated == true}">
+        <h2>Текущая сессия</h2>
 
         <p>
-            <strong>Имя:</strong>
-            <span th:text="${userName}">Имя</span>
+            <span class="status status-success">Авторизован</span>
         </p>
 
-        <p>
-            <strong>Email:</strong>
-            <span th:text="${userEmail}">Email</span>
-        </p>
+        <div class="grid">
+            <div class="label">Имя</div>
+            <div class="value" th:text="${userName}">Имя</div>
 
-        <p>
+            <div class="label">Email</div>
+            <div class="value" th:text="${userEmail}">Email</div>
+        </div>
+
+        <div class="actions">
             <a href="/profile">
                 <button type="button">Открыть профиль</button>
             </a>
-        </p>
 
-        <p>
             <a href="/userinfo">
-                <button type="button">Получить UserInfo</button>
+                <button type="button" class="secondary">Получить UserInfo</button>
             </a>
-        </p>
 
-        <form th:action="@{/logout}" method="post">
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <button type="submit">Выйти</button>
-        </form>
+            <form th:action="@{/logout}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="danger">Выйти</button>
+            </form>
+        </div>
     </div>
+</div>
 </body>
 </html>
+

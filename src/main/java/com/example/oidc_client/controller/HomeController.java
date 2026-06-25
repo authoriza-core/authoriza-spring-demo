@@ -1,3 +1,4 @@
+
 package com.example.oidc_client.controller;
 
 import java.nio.charset.StandardCharsets;
@@ -5,6 +6,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
@@ -14,11 +17,16 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import com.example.oidc_client.storage.StoredAuthData;
+import org.springframework.web.bind.annotation.RequestParam;
+
 import com.example.oidc_client.storage.AuthTokenStorageService;
+import com.example.oidc_client.storage.StoredAuthData;
 
 @Controller
 public class HomeController {
+
+    private static final String REGISTRATION_ID = "autoriza";
+    private static final Duration REFRESH_TOKEN_LIFETIME = Duration.ofMinutes(15);
 
     private final AuthTokenStorageService tokenStorageService;
 
@@ -28,16 +36,29 @@ public class HomeController {
 
     @GetMapping("/")
     public String index(
-            @AuthenticationPrincipal OidcUser oidcUser,
+            Authentication authentication,
+            @RequestParam(name = "skipRestore", defaultValue = "false") boolean skipRestore,
             Model model
     ) {
-        if (oidcUser != null) {
-            model.addAttribute("authenticated", true);
-            model.addAttribute("userName", oidcUser.getClaims().get("name"));
-            model.addAttribute("userEmail", oidcUser.getClaims().get("email"));
-        } else {
-            model.addAttribute("authenticated", false);
+        if (isAuthenticated(authentication)) {
+            return "redirect:/profile";
         }
+
+        if (!skipRestore) {
+            StoredAuthData storedAuthData = tokenStorageService.findByRegistrationId(REGISTRATION_ID);
+
+            if (storedAuthData != null) {
+                Instant refreshTokenExpiresAt = storedAuthData.getRefreshTokenExpiresAt();
+
+                if (refreshTokenExpiresAt == null || refreshTokenExpiresAt.isAfter(Instant.now())) {
+                    return "redirect:/restore-session";
+                }
+
+                tokenStorageService.deleteByRegistrationId(REGISTRATION_ID);
+            }
+        }
+
+        model.addAttribute("authenticated", false);
 
         return "index";
     }
@@ -94,9 +115,25 @@ public class HomeController {
                 model.addAttribute("accessTokenExpiresAt", "Срок действия неизвестен");
                 model.addAttribute("accessTokenExpiresIn", "Неизвестно");
             }
+
+            Instant refreshTokenIssuedAt = null;
+            Instant refreshTokenExpiresAt = null;
+
             if (refreshToken != null) {
-                model.addAttribute("refreshTokenIssuedAt", refreshToken.getIssuedAt());
-                model.addAttribute("refreshTokenExpiresAt", "Не предоставлено провайдером");
+                refreshTokenIssuedAt = refreshToken.getIssuedAt();
+
+                StoredAuthData currentStoredAuthData = tokenStorageService.findByRegistrationId(REGISTRATION_ID);
+
+                if (currentStoredAuthData != null && currentStoredAuthData.getRefreshTokenExpiresAt() != null) {
+                    refreshTokenExpiresAt = currentStoredAuthData.getRefreshTokenExpiresAt();
+                } else {
+                    refreshTokenExpiresAt = refreshTokenIssuedAt != null
+                            ? refreshTokenIssuedAt.plus(REFRESH_TOKEN_LIFETIME)
+                            : Instant.now().plus(REFRESH_TOKEN_LIFETIME);
+                }
+
+                model.addAttribute("refreshTokenIssuedAt", refreshTokenIssuedAt);
+                model.addAttribute("refreshTokenExpiresAt", refreshTokenExpiresAt);
             } else {
                 model.addAttribute("refreshTokenIssuedAt", "Refresh Token отсутствует");
                 model.addAttribute("refreshTokenExpiresAt", "Refresh Token отсутствует");
@@ -104,30 +141,33 @@ public class HomeController {
 
             if (accessToken != null && refreshToken != null) {
                 tokenStorageService.saveTokens(
-                        "autoriza",
+                        REGISTRATION_ID,
                         authorizedClient.getPrincipalName(),
                         accessTokenValue,
                         refreshTokenValue,
                         idTokenValue,
                         accessToken.getIssuedAt(),
                         accessToken.getExpiresAt(),
-                        refreshToken.getIssuedAt(),
+                        refreshTokenIssuedAt,
+                        refreshTokenExpiresAt,
                         oidcUser.getIdToken() != null ? oidcUser.getIdToken().getIssuedAt() : null,
                         oidcUser.getIdToken() != null ? oidcUser.getIdToken().getExpiresAt() : null,
                         accessToken.getScopes()
                 );
             }
 
-            StoredAuthData storedAuthData = tokenStorageService.findByRegistrationId("autoriza");
+            StoredAuthData storedAuthData = tokenStorageService.findByRegistrationId(REGISTRATION_ID);
 
             if (storedAuthData != null) {
                 model.addAttribute("lastUpdatedAt", storedAuthData.getLastUpdatedAt());
+                model.addAttribute("refreshTokenExpiresAt", storedAuthData.getRefreshTokenExpiresAt());
             }
 
             model.addAttribute("accessToken", maskToken(accessTokenValue));
             model.addAttribute("idToken", maskToken(idTokenValue));
             model.addAttribute("idTokenPayload", decodeJwtPayloadSafe(idTokenValue));
             model.addAttribute("accessTokenPayload", decodeJwtPayloadSafe(accessTokenValue));
+
             if (refreshTokenValue.isBlank()) {
                 model.addAttribute("refreshToken", "Refresh Token не выдан");
             } else {
@@ -148,6 +188,12 @@ public class HomeController {
         }
     }
 
+    private boolean isAuthenticated(Authentication authentication) {
+        return authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken);
+    }
+
     private String calculateExpiresIn(Instant expiresAt) {
         if (expiresAt == null) {
             return "Неизвестно";
@@ -161,6 +207,7 @@ public class HomeController {
 
         return seconds + " секунд";
     }
+
     private String decodeJwtPayloadSafe(String token) {
         try {
             if (token == null || token.isBlank()) {
@@ -181,6 +228,7 @@ public class HomeController {
             return "Ошибка декодирования JWT payload: " + exception.getMessage();
         }
     }
+
     private String getJwtCompareInfo(String token) {
         try {
             if (token == null || token.isBlank()) {

@@ -24,6 +24,7 @@ public class AuthTokenStorageService {
             Instant accessTokenIssuedAt,
             Instant accessTokenExpiresAt,
             Instant refreshTokenIssuedAt,
+            Instant refreshTokenExpiresAt,
             Instant idTokenIssuedAt,
             Instant idTokenExpiresAt,
             Set<String> scopes
@@ -42,6 +43,8 @@ public class AuthTokenStorageService {
         data.setIdTokenExpiresAt(idTokenExpiresAt);
         data.setScopes(joinScopes(scopes));
         data.setLastUpdatedAt(Instant.now());
+        data.setRefreshTokenIssuedAt(refreshTokenIssuedAt);
+        data.setRefreshTokenExpiresAt(refreshTokenExpiresAt);
 
         repository.save(data);
     }

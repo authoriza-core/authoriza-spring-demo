@@ -1,13 +1,10 @@
+
 package com.example.oidc_client.config;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
-import org.springframework.security.config.Customizer;
-import com.example.oidc_client.storage.AuthTokenStorageService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,12 +14,16 @@ import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+
+import com.example.oidc_client.storage.AuthTokenStorageService;
+
 import jakarta.servlet.http.HttpServletRequest;
 
 @Configuration
@@ -61,12 +62,14 @@ public class SecurityConfig {
             @Override
             public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
                 OAuth2AuthorizationRequest authorizationRequest = defaultResolver.resolve(request);
+
                 return customizeAuthorizationRequest(authorizationRequest);
             }
 
             @Override
             public OAuth2AuthorizationRequest resolve(HttpServletRequest request, String clientRegistrationId) {
                 OAuth2AuthorizationRequest authorizationRequest = defaultResolver.resolve(request, clientRegistrationId);
+
                 return customizeAuthorizationRequest(authorizationRequest);
             }
 
@@ -77,16 +80,13 @@ public class SecurityConfig {
                     return null;
                 }
 
-                Map<String, Object> additionalParameters =
-                        new HashMap<>(authorizationRequest.getAdditionalParameters());
+                OAuth2AuthorizationRequest.Builder builder =
+                        OAuth2AuthorizationRequest.from(authorizationRequest);
 
-                //Просим провайдера показать consent, чтобы проверить выдачу refresh_token
-                additionalParameters.put("prompt", "consent");
+                //Добавляем PKCE: code_verifier, code_challenge и code_challenge_method=S256
+                OAuth2AuthorizationRequestCustomizers.withPkce().accept(builder);
 
-                return OAuth2AuthorizationRequest
-                        .from(authorizationRequest)
-                        .additionalParameters(additionalParameters)
-                        .build();
+                return builder.build();
             }
         };
     }
@@ -96,8 +96,8 @@ public class SecurityConfig {
             HttpSecurity http,
             OAuth2UserService<OidcUserRequest, OidcUser> customOidcUserService,
             OAuth2AuthorizationRequestResolver authorizationRequestResolver,
-             AccessTokenAutoRefreshFilter accessTokenAutoRefreshFilter,
-             AuthTokenStorageService tokenStorageService
+            AccessTokenAutoRefreshFilter accessTokenAutoRefreshFilter,
+            AuthTokenStorageService tokenStorageService
     ) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
@@ -124,16 +124,17 @@ public class SecurityConfig {
                             }
 
                             System.out.println("==============================");
+
                             response.sendRedirect("/");
                         })
                 )
                 .logout(logout -> logout
                         .logoutSuccessHandler((request, response, authentication) -> {
-                        tokenStorageService.deleteByRegistrationId("autoriza");
+                            tokenStorageService.deleteByRegistrationId("autoriza");
 
-                        request.getSession().invalidate();
+                            request.getSession().invalidate();
 
-                        response.sendRedirect("/");
+                            response.sendRedirect("/");
                         })
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
@@ -148,3 +149,4 @@ public class SecurityConfig {
                 .build();
     }
 }
+
