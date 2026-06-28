@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
+
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -212,18 +212,6 @@ public class TokenRefreshController {
                     scopes
             );
 
-            //После refresh повторно пробуем получить UserInfo
-            String userInfoEndpoint = clientRegistration
-                    .getProviderDetails()
-                    .getUserInfoEndpoint()
-                    .getUri();
-
-            requestUserInfoAfterRefresh(
-                    userInfoEndpoint,
-                    newAccessTokenValue,
-                    model
-            );
-
             //Передаем результат обновления на страницу
             model.addAttribute("success", true);
             model.addAttribute("message", "Токены успешно обновлены и сохранены в сессии и H2.");
@@ -303,34 +291,6 @@ public class TokenRefreshController {
         return refreshTokenIssuedAt.plus(REFRESH_TOKEN_LIFETIME);
     }
 
-    private void requestUserInfoAfterRefresh(
-            String userInfoEndpoint,
-            String accessTokenValue,
-            Model model
-    ) {
-        model.addAttribute("userInfoRequestedAt", Instant.now());
-        model.addAttribute("userInfoEndpoint", userInfoEndpoint);
-
-        try {
-            String userInfoResponse = restClient.get()
-                    .uri(userInfoEndpoint)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessTokenValue)
-                    .retrieve()
-                    .body(String.class);
-
-            model.addAttribute("userInfoStatus", "Успешно");
-            model.addAttribute("userInfoResponse", userInfoResponse);
-
-        } catch (RestClientResponseException exception) {
-            model.addAttribute("userInfoStatus", "Ошибка");
-            model.addAttribute("userInfoHttpStatus", exception.getStatusCode().value());
-            model.addAttribute("userInfoResponse", exception.getResponseBodyAsString());
-
-        } catch (Exception exception) {
-            model.addAttribute("userInfoStatus", "Ошибка");
-            model.addAttribute("userInfoResponse", exception.getClass().getName() + ": " + exception.getMessage());
-        }
-    }
 
     private String maskToken(String token) {
         if (token == null || token.isBlank()) {

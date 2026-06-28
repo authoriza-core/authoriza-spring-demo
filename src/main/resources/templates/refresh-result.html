@@ -242,61 +242,15 @@
         </p>
     </div>
 
-    <div class="card" th:if="${success}">
-        <h2>UserInfo после обновления токенов</h2>
-
-        <p class="section-note">
-            После refresh приложение повторно выполняет запрос к UserInfo Endpoint с новым Access Token.
-        </p>
-
-        <div class="grid">
-            <div class="label">Время запроса</div>
-            <div class="value" th:text="${userInfoRequestedAt}">Время запроса UserInfo</div>
-
-            <div class="label">UserInfo Endpoint</div>
-            <div class="value" th:text="${userInfoEndpoint}">UserInfo Endpoint</div>
-
-            <div class="label">Статус</div>
-            <div class="value" th:text="${userInfoStatus}">Статус UserInfo</div>
-
-            <div class="label" th:if="${userInfoHttpStatus}">HTTP статус</div>
-            <div class="value" th:if="${userInfoHttpStatus}" th:text="${userInfoHttpStatus}">HTTP статус UserInfo</div>
-        </div>
-
-        <p><strong>Ответ UserInfo</strong></p>
-        <pre th:text="${userInfoResponse}">Ответ UserInfo</pre>
-    </div>
-
-    <div class="card" th:if="${!success}">
-        <h2>Ошибка обновления</h2>
-
-        <div class="grid">
-            <div class="label" th:if="${statusCode}">HTTP статус</div>
-            <div class="value" th:if="${statusCode}" th:text="${statusCode}">Статус</div>
-
-            <div class="label" th:if="${tokenEndpointResponse}">Диагностика</div>
-            <div class="value" th:if="${tokenEndpointResponse}" th:text="${tokenEndpointResponse}">Диагностика</div>
-        </div>
-
-        <p th:if="${responseBody}"><strong>Ответ ошибки</strong></p>
-        <pre th:if="${responseBody}" th:text="${responseBody}">Ответ ошибки</pre>
-    </div>
-
     <div class="card">
         <h2>Действия</h2>
 
         <div class="actions">
-            <a href="/">
-                <button type="button" class="secondary">На главную</button>
-            </a>
 
             <a href="/profile">
                 <button type="button">Вернуться в профиль</button>
             </a>
 
-            <a href="/userinfo">
-                <button type="button" class="secondary">Получить UserInfo вручную</button>
-            </a>
         </div>
     </div>
 </div>

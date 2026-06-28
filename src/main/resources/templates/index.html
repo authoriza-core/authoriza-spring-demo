@@ -203,10 +203,6 @@
                 <button type="button">Открыть профиль</button>
             </a>
 
-            <a href="/userinfo">
-                <button type="button" class="secondary">Получить UserInfo</button>
-            </a>
-
             <form th:action="@{/logout}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <button type="submit" class="danger">Выйти</button>
