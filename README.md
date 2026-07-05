@@ -442,25 +442,31 @@ authoriza-spring-demo/
 
 Главная страница до авторизации.
 
-![Экран до входа](screenshots/before-login.png)
+![Экран до входа](screenshots/before-login1.png)
 
-### Экран после входа
+### Экран до входа
+
+Главная страница после авторизации.
+
+![Экран после входа](screenshots/autorise-user.png)
+
+### Профиль после входа
 
 Страница профиля после успешной авторизации.
 
-![Экран после входа](screenshots/after-login.png)
+![Профиль после входа](screenshots/after-login1.png)
 
 ### Отображение токенов
 
 Блок на странице профиля с маскированными токенами, сроками действия и JWT payload.
 
-![Токены](screenshots/tokens.png)
+![Токены](screenshots/tokens1.png)
 
 ### Результат обновления токенов
 
 Страница результата ручного обновления токенов.
 
-![Обновление](screenshots/refresh-result.png)
+![Обновление](screenshots/refresh-result1.png)
 
 ## Возможные проблемы и решения
 
