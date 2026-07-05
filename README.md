@@ -117,7 +117,7 @@ OIDC endpoint-ы не прописываются вручную в коде. Spr
 Issuer URI:
 
 ```text
-https://oidc.authoriza.ru/
+https://oidc.authoriza.ru/oidc
 ```
 
 Пример настройки в `application.yml`:
@@ -141,7 +141,7 @@ spring:
               - offline_access
         provider:
           autoriza:
-            issuer-uri: https://oidc.authoriza.ru/
+            issuer-uri: https://oidc.authoriza.ru/oidc
 ```
 
 ## Настройка Client ID и Client Secret
