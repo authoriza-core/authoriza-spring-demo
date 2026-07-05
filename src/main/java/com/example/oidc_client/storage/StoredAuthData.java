@@ -1,13 +1,14 @@
 package com.example.oidc_client.storage;
 
-import java.time.Instant;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
 
+import java.time.Instant;
 
 @Entity
+@Table(name = "stored_auth_data")
 public class StoredAuthData {
 
     @Id
@@ -24,37 +25,22 @@ public class StoredAuthData {
     @Lob
     private String idToken;
 
-    private Instant accessTokenIssuedAt;
+    private String tokenType;
 
+    private Instant accessTokenIssuedAt;
     private Instant accessTokenExpiresAt;
 
     private Instant refreshTokenIssuedAt;
+    private Instant refreshTokenExpiresAt;
 
     private Instant idTokenIssuedAt;
-
     private Instant idTokenExpiresAt;
 
+    @Lob
     private String scopes;
 
     private Instant lastUpdatedAt;
 
-    private Instant refreshTokenExpiresAt;
-
-
-    public Instant getRefreshTokenExpiresAt() {
-        return refreshTokenExpiresAt;
-    }
-
-    public void setRefreshTokenExpiresAt(Instant refreshTokenExpiresAt) {
-        this.refreshTokenExpiresAt = refreshTokenExpiresAt;
-    }
-    public Instant getLastUpdatedAt() {
-        return lastUpdatedAt;
-    }
-
-    public void setLastUpdatedAt(Instant lastUpdatedAt) {
-        this.lastUpdatedAt = lastUpdatedAt;
-    }
     public String getRegistrationId() {
         return registrationId;
     }
@@ -95,6 +81,14 @@ public class StoredAuthData {
         this.idToken = idToken;
     }
 
+    public String getTokenType() {
+        return tokenType;
+    }
+
+    public void setTokenType(String tokenType) {
+        this.tokenType = tokenType;
+    }
+
     public Instant getAccessTokenIssuedAt() {
         return accessTokenIssuedAt;
     }
@@ -119,6 +113,14 @@ public class StoredAuthData {
         this.refreshTokenIssuedAt = refreshTokenIssuedAt;
     }
 
+    public Instant getRefreshTokenExpiresAt() {
+        return refreshTokenExpiresAt;
+    }
+
+    public void setRefreshTokenExpiresAt(Instant refreshTokenExpiresAt) {
+        this.refreshTokenExpiresAt = refreshTokenExpiresAt;
+    }
+
     public Instant getIdTokenIssuedAt() {
         return idTokenIssuedAt;
     }
@@ -141,5 +143,13 @@ public class StoredAuthData {
 
     public void setScopes(String scopes) {
         this.scopes = scopes;
+    }
+
+    public Instant getLastUpdatedAt() {
+        return lastUpdatedAt;
+    }
+
+    public void setLastUpdatedAt(Instant lastUpdatedAt) {
+        this.lastUpdatedAt = lastUpdatedAt;
     }
 }

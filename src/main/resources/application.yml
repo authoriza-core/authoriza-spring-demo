@@ -25,7 +25,7 @@ spring:
       client:
         registration:
           autoriza:
-            client-id: "f64f13d3-5493-4315-abc4-df615556e523"
+            client-id: "${AUTORIZA_CLIENT_ID}"
             client-secret: "${AUTORIZA_CLIENT_SECRET}"
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
@@ -37,7 +37,7 @@ spring:
               - offline_access
         provider:
           autoriza:
-            issuer-uri: https://a-kalinin-authoriza-backend-stand-d37a.twc1.net/oidc
+            issuer-uri: https://oidc.authoriza.ru/oidc
 
 logging:
   level:

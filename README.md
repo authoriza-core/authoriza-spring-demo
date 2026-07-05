@@ -20,7 +20,7 @@
 * Восстановление сессии после перезапуска приложения.
 * Ручное обновление токенов через Refresh Token.
 * Автоматическое обновление Access Token до истечения срока действия.
-* Обработку истечения Refresh Token.
+* Обработку ситуации, когда Refresh Token больше не принимается провайдером.
 * Выход из приложения с очисткой сохранённой сессии.
 
 ## Стек технологий
@@ -47,10 +47,10 @@ spring-boot-starter-oauth2-client
 Перед запуском убедитесь, что установлены следующие компоненты:
 
 * **JDK 21** или выше.
-* Доступ к тестовому стенду Авторизы.
+* Доступ к продовому стенду Авторизы: `https://oidc.authoriza.ru`.
 * Зарегистрированное приложение в Авторизе.
 * Настроенный Redirect URI.
-* Client ID и Client Secret.
+* Client ID и Client Secret, полученные в Авторизе. В репозитории они не хранятся.
 * Терминал PowerShell, CMD или bash.
 
 Проверить версию Java можно командой:
@@ -91,7 +91,7 @@ javac -version
 | -------------------------------- | ------------------------------------------------ |
 | **Flow**                         | Authorization Code Flow                          |
 | **PKCE**                         | Включён                                          |
-| **Client authentication method** | client_secret_post                               |
+| **Client authentication method** | client_secret_basic                              |
 | **Redirect URI**                 | http://localhost:8080/login/oauth2/code/autoriza |
 | **Состояние приложения**         | Включено                                         |
 
@@ -117,7 +117,7 @@ OIDC endpoint-ы не прописываются вручную в коде. Spr
 Issuer URI:
 
 ```text
-https://a-kalinin-authoriza-backend-stand-d37a.twc1.net/oidc
+https://oidc.authoriza.ru/
 ```
 
 Пример настройки в `application.yml`:
@@ -127,25 +127,46 @@ spring:
   security:
     oauth2:
       client:
+        registration:
+          autoriza:
+            client-id: "${AUTORIZA_CLIENT_ID}"
+            client-secret: "${AUTORIZA_CLIENT_SECRET}"
+            client-authentication-method: client_secret_basic
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - email
+              - offline_access
         provider:
           autoriza:
-            issuer-uri: https://a-kalinin-authoriza-backend-stand-d37a.twc1.net/oidc
+            issuer-uri: https://oidc.authoriza.ru/
 ```
 
-## Настройка Client Secret
+## Настройка Client ID и Client Secret
 
-Client Secret не хранится в репозитории.
+Client ID и Client Secret не хранятся в репозитории.
 
-Для безопасности он передаётся через переменную окружения:
+Для безопасности они передаются через переменные окружения:
 
 ```text
+AUTORIZA_CLIENT_ID
 AUTORIZA_CLIENT_SECRET
 ```
 
 Для Windows PowerShell:
 
 ```powershell
+$env:AUTORIZA_CLIENT_ID="your_client_id"
 $env:AUTORIZA_CLIENT_SECRET="your_client_secret"
+```
+
+Для Linux или macOS:
+
+```bash
+export AUTORIZA_CLIENT_ID="your_client_id"
+export AUTORIZA_CLIENT_SECRET="your_client_secret"
 ```
 
 После этого можно запускать приложение.
@@ -196,14 +217,16 @@ http://localhost:8080/
 * Token Type;
 * scopes;
 * срок действия Access Token;
-* срок действия Refresh Token;
+* срок действия Refresh Token, если он доступен;
 * время последнего обновления токенов;
 * маскированные значения Access Token, ID Token и Refresh Token;
 * декодированный payload ID Token;
 * декодированный payload Access Token;
-* краткая информация для сравнения токенов после обновления.
+* идентификаторы токенов, если соответствующие claims присутствуют в JWT
 
 Полные значения токенов на страницу не выводятся.
+
+Срок жизни Refresh Token приложением не рассчитывается вручную. Если провайдер не передал достоверное время истечения Refresh Token, приложение отображает значение `Неизвестно`.
 
 ### Обновление токенов
 
@@ -218,7 +241,7 @@ POST /refresh-token
 * статус операции;
 * маскированные новые токены;
 * новый срок действия Access Token;
-* срок действия Refresh Token;
+* срок действия Refresh Token, если он доступен;
 * информацию об успешной обработке ответа Token Endpoint.
 
 ### Выход из приложения
@@ -268,7 +291,7 @@ SELECT * FROM STORED_AUTH_DATA;
 * время выдачи Access Token;
 * время истечения Access Token;
 * время выдачи Refresh Token;
-* время истечения Refresh Token;
+* время истечения Refresh Token, если оно доступно;
 * время выдачи ID Token;
 * время истечения ID Token;
 * scopes;
@@ -315,7 +338,7 @@ code_challenge_method=S256
 * ID Token в маскированном виде;
 * Refresh Token в маскированном виде;
 * срок действия Access Token;
-* срок действия Refresh Token;
+* срок действия Refresh Token, если он доступен;
 * JWT payload Access Token;
 * JWT payload ID Token.
 
@@ -334,7 +357,7 @@ code_challenge_method=S256
 
 ### 5. Автоматическое обновление Access Token
 
-Access Token обновляется автоматически до истечения срока действия.
+Access Token обновляется автоматически до истечения срока действия при обращении пользователя к защищённым страницам.
 
 Для проверки:
 
@@ -361,9 +384,11 @@ http://localhost:8080/
 * выполняет восстановление сессии;
 * пользователь попадает на страницу профиля без повторной ручной авторизации, если Refresh Token ещё действителен.
 
-### 7. Истечение Refresh Token
+### 7. Недействительный Refresh Token
 
-Если Refresh Token истёк, приложение:
+Приложение не рассчитывает срок жизни Refresh Token вручную. Если провайдер не возвращает срок действия Refresh Token, в интерфейсе отображается значение `Неизвестно`.
+
+Если при попытке восстановления или обновления провайдер отклоняет Refresh Token, приложение:
 
 * удаляет сохранённые токены;
 * очищает локальную сессию;
@@ -391,9 +416,12 @@ authoriza-spring-demo/
 │   ├── main/
 │   │   ├── java/
 │   │   │   └── com/example/oidc_client/
-│   │   │       ├── config/        # SecurityConfig и фильтр автообновления токенов
+│   │   │       ├── config/        # SecurityConfig и фильтр автообновления Access Token
 │   │   │       ├── controller/    # Контроллеры главной страницы, профиля, refresh и восстановления сессии
+│   │   │       ├── dto/           # DTO для токенов, профиля и результатов refresh
+│   │   │       ├── service/       # Бизнес-логика OIDC, refresh, восстановления и профиля
 │   │   │       ├── storage/       # Сущность, репозиторий и сервис хранения токенов
+│   │   │       ├── util/          # Утилиты для JWT, scopes, маскирования и времени
 │   │   │       └── OidcClientApplication.java
 │   │   └── resources/
 │   │       ├── templates/         # Thymeleaf-шаблоны
@@ -457,6 +485,7 @@ authoriza-spring-demo/
 
 В репозиторий не должны попадать:
 
+* Client ID;
 * Client Secret;
 * `.env`;
 * локальная H2-база;
@@ -467,9 +496,10 @@ authoriza-spring-demo/
 
 Для этого используется `.gitignore`.
 
-Client Secret передаётся через переменную окружения:
+Client ID и Client Secret передаются через переменные окружения:
 
 ```text
+AUTORIZA_CLIENT_ID
 AUTORIZA_CLIENT_SECRET
 ```
 
@@ -487,5 +517,5 @@ AUTORIZA_CLIENT_SECRET
 * автоматическое обновление Access Token;
 * сохранение токенов в H2;
 * восстановление сессии после перезапуска;
-* обработка истечения Refresh Token;
+* обработка отклонения Refresh Token провайдером;
 * logout с очисткой сохранённых данных;

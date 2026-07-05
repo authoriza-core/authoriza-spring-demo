@@ -1,9 +1,7 @@
-
 package com.example.oidc_client.config;
 
-import java.util.HashSet;
-import java.util.Set;
-
+import com.example.oidc_client.service.TokenCleanupService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,10 +19,10 @@ import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import com.example.oidc_client.service.InitialLoginTokenStorageService;
 
-import com.example.oidc_client.storage.AuthTokenStorageService;
-
-import jakarta.servlet.http.HttpServletRequest;
+import java.util.HashSet;
+import java.util.Set;
 
 @Configuration
 public class SecurityConfig {
@@ -33,12 +31,8 @@ public class SecurityConfig {
     public OAuth2UserService<OidcUserRequest, OidcUser> customOidcUserService() {
         return userRequest -> {
             Set<GrantedAuthority> authorities = new HashSet<>();
-
-            //Создаем минимальную роль, чтобы Spring считал пользователя авторизованным
             authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
 
-            //Создаем пользователя только на основе ID Token
-            //UserInfo Endpoint здесь не вызывается
             return new DefaultOidcUser(
                     authorities,
                     userRequest.getIdToken(),
@@ -61,14 +55,19 @@ public class SecurityConfig {
 
             @Override
             public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
-                OAuth2AuthorizationRequest authorizationRequest = defaultResolver.resolve(request);
+                OAuth2AuthorizationRequest authorizationRequest =
+                        defaultResolver.resolve(request);
 
                 return customizeAuthorizationRequest(authorizationRequest);
             }
 
             @Override
-            public OAuth2AuthorizationRequest resolve(HttpServletRequest request, String clientRegistrationId) {
-                OAuth2AuthorizationRequest authorizationRequest = defaultResolver.resolve(request, clientRegistrationId);
+            public OAuth2AuthorizationRequest resolve(
+                    HttpServletRequest request,
+                    String clientRegistrationId
+            ) {
+                OAuth2AuthorizationRequest authorizationRequest =
+                        defaultResolver.resolve(request, clientRegistrationId);
 
                 return customizeAuthorizationRequest(authorizationRequest);
             }
@@ -83,7 +82,6 @@ public class SecurityConfig {
                 OAuth2AuthorizationRequest.Builder builder =
                         OAuth2AuthorizationRequest.from(authorizationRequest);
 
-                //Добавляем PKCE: code_verifier, code_challenge и code_challenge_method=S256
                 OAuth2AuthorizationRequestCustomizers.withPkce().accept(builder);
 
                 return builder.build();
@@ -97,30 +95,56 @@ public class SecurityConfig {
             OAuth2UserService<OidcUserRequest, OidcUser> customOidcUserService,
             OAuth2AuthorizationRequestResolver authorizationRequestResolver,
             AccessTokenAutoRefreshFilter accessTokenAutoRefreshFilter,
-            AuthTokenStorageService tokenStorageService
+            TokenCleanupService tokenCleanupService,
+            InitialLoginTokenStorageService initialLoginTokenStorageService
     ) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/error", "/restore-session").permitAll()
+                        .requestMatchers(
+                                "/",
+                                "/error",
+                                "/restore-session",
+                                "/login"
+                        ).permitAll()
                         .requestMatchers(PathRequest.toH2Console()).permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
-                        .defaultSuccessUrl("/", true)
+                        .successHandler((request, response, authentication) -> {
+                                initialLoginTokenStorageService.saveAfterLogin(authentication, request);
+                                response.sendRedirect("/profile");
+                                })
                         .authorizationEndpoint(authorization -> authorization
-                                .authorizationRequestResolver(authorizationRequestResolver)
+                                .authorizationRequestResolver(
+                                        authorizationRequestResolver
+                                )
                         )
                         .userInfoEndpoint(userInfo -> userInfo
                                 .oidcUserService(customOidcUserService)
                         )
                         .failureHandler((request, response, exception) -> {
                             System.out.println("===== OAUTH2 LOGIN ERROR =====");
-                            System.out.println("Exception class: " + exception.getClass().getName());
-                            System.out.println("Exception message: " + exception.getMessage());
+                            System.out.println(
+                                    "Exception class: "
+                                            + exception.getClass().getName()
+                            );
+                            System.out.println(
+                                    "Exception message: "
+                                            + exception.getMessage()
+                            );
 
                             if (exception.getCause() != null) {
-                                System.out.println("Cause class: " + exception.getCause().getClass().getName());
-                                System.out.println("Cause message: " + exception.getCause().getMessage());
+                                System.out.println(
+                                        "Cause class: "
+                                                + exception.getCause()
+                                                .getClass()
+                                                .getName()
+                                );
+                                System.out.println(
+                                        "Cause message: "
+                                                + exception.getCause()
+                                                .getMessage()
+                                );
                             }
 
                             System.out.println("==============================");
@@ -130,16 +154,16 @@ public class SecurityConfig {
                 )
                 .logout(logout -> logout
                         .logoutSuccessHandler((request, response, authentication) -> {
-                            tokenStorageService.deleteByRegistrationId("autoriza");
-
-                            request.getSession().invalidate();
-
+                            tokenCleanupService.clearDefaultAuthorization(request);
                             response.sendRedirect("/");
                         })
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                 )
-                .addFilterAfter(accessTokenAutoRefreshFilter, AnonymousAuthenticationFilter.class)
+                .addFilterAfter(
+                        accessTokenAutoRefreshFilter,
+                        AnonymousAuthenticationFilter.class
+                )
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers(PathRequest.toH2Console())
                 )
@@ -149,4 +173,3 @@ public class SecurityConfig {
                 .build();
     }
 }
-

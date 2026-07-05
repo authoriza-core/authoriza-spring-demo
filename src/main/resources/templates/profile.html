@@ -1,287 +1,267 @@
-
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Профиль</title>
-
+    <title>Профиль OIDC-клиента</title>
     <style>
         body {
-            margin: 0;
-            padding: 32px;
             font-family: Arial, sans-serif;
-            background: #f4f6f8;
-            color: #1f2933;
-        }
-
-        .page {
             max-width: 1100px;
-            margin: 0 auto;
-        }
-
-        .header {
-            margin-bottom: 24px;
-        }
-
-        .header h1 {
-            margin: 0 0 8px;
-            font-size: 32px;
-        }
-
-        .header p {
-            margin: 0;
-            color: #64748b;
+            margin: 40px auto;
+            line-height: 1.6;
         }
 
         .card {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
             padding: 24px;
             margin-bottom: 20px;
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
         }
 
-        .card h2 {
-            margin: 0 0 18px;
-            font-size: 22px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 220px 1fr;
-            gap: 12px 20px;
-            align-items: start;
-        }
-
-        .label {
-            font-weight: 700;
-            color: #334155;
-        }
-
-        .value {
-            color: #0f172a;
-            word-break: break-word;
-        }
-
-        .status {
-            display: inline-block;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: #e8f7ee;
-            color: #166534;
-            font-weight: 700;
-            font-size: 14px;
+        .success {
+            color: #1b5e20;
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            padding: 12px;
+            border-radius: 6px;
         }
 
         .error {
-            background: #fff1f2;
-            border-color: #fecdd3;
-            color: #9f1239;
-        }
-
-        pre {
-            margin: 8px 0 0;
-            padding: 14px;
-            background: #0f172a;
-            color: #e5e7eb;
-            border-radius: 10px;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            word-break: break-word;
-            font-size: 13px;
-            line-height: 1.5;
+            color: #b71c1c;
+            background: #ffebee;
+            border: 1px solid #ef9a9a;
+            padding: 12px;
+            border-radius: 6px;
         }
 
         .muted {
-            color: #64748b;
+            color: #666;
+        }
+
+        .token-box {
+            background: #f6f8fa;
+            border: 1px solid #ddd;
+            padding: 12px;
+            border-radius: 6px;
+            word-break: break-all;
+            white-space: pre-wrap;
+            font-family: Consolas, monospace;
+            font-size: 13px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        td, th {
+            border-bottom: 1px solid #eee;
+            padding: 8px;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        th {
+            width: 260px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 6px;
+            background: #1f6feb;
+            color: white;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
             font-size: 14px;
-            margin-top: 0;
+        }
+
+        .button.secondary {
+            background: #666;
+        }
+
+        .button.danger {
+            background: #c62828;
         }
 
         .actions {
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
             align-items: center;
-        }
-
-        .actions a,
-        .actions form {
-            margin: 0;
-        }
-
-        button {
-            border: none;
-            border-radius: 10px;
-            padding: 11px 16px;
-            cursor: pointer;
-            background: #2563eb;
-            color: #ffffff;
-            font-size: 15px;
-            font-weight: 700;
-        }
-
-        button:hover {
-            background: #1d4ed8;
-        }
-
-        .secondary {
-            background: #475569;
-        }
-
-        .secondary:hover {
-            background: #334155;
-        }
-
-        .danger {
-            background: #dc2626;
-        }
-
-        .danger:hover {
-            background: #b91c1c;
-        }
-
-        .section-note {
-            margin-top: -8px;
-            margin-bottom: 16px;
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        @media (max-width: 720px) {
-            body {
-                padding: 16px;
-            }
-
-            .grid {
-                grid-template-columns: 1fr;
-                gap: 6px;
-            }
-
-            .label {
-                margin-top: 10px;
-            }
-
-            .actions {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            button {
-                width: 100%;
-            }
+            flex-wrap: wrap;
         }
     </style>
 </head>
 <body>
-<div class="page">
-    <div class="header">
-        <h1>Профиль OIDC-клиента</h1>
-        <p>
-            <span class="status">Пользователь авторизован</span>
-        </p>
+
+<h1>Профиль OIDC-клиента</h1>
+
+<p class="success" th:if="${param.restored}">
+    Сессия успешно восстановлена из сохранённых токенов.
+</p>
+
+<p class="error" th:if="${param.refreshError}">
+    При автоматическом обновлении токенов произошла ошибка.
+</p>
+
+<div class="card">
+    <h2>Данные пользователя</h2>
+
+    <table>
+        <tr>
+            <th>Principal Name</th>
+            <td th:text="${profile.principalName} ?: 'Не получено'">principalName</td>
+        </tr>
+        <tr>
+            <th>Display Name</th>
+            <td th:text="${profile.displayName} ?: 'Не получено'">displayName</td>
+        </tr>
+        <tr>
+            <th>Email</th>
+            <td th:text="${profile.email} ?: 'Не получен'">email</td>
+        </tr>
+        <tr>
+            <th>Subject</th>
+            <td th:text="${profile.subject} ?: 'Не получен'">subject</td>
+        </tr>
+        <tr>
+            <th>Client Registration ID</th>
+            <td th:text="${profile.clientRegistrationId} ?: 'Не получен'">clientRegistrationId</td>
+        </tr>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Состояние токенов</h2>
+
+    <table>
+        <tr>
+            <th>Token Type</th>
+            <td th:text="${profile.tokenType} ?: 'Bearer'">Bearer</td>
+        </tr>
+        <tr>
+            <th>Scopes</th>
+            <td>
+                <span th:if="${profile.scopes == null || profile.scopes.isEmpty()}">Scopes не получены</span>
+                <span th:each="scope : ${profile.scopes}">
+                    <code th:text="${scope}">scope</code>
+                </span>
+            </td>
+        </tr>
+        <tr>
+            <th>Access Token есть</th>
+            <td th:text="${profile.accessTokenPresent} ? 'Да' : 'Нет'">Да</td>
+        </tr>
+        <tr>
+            <th>Refresh Token есть</th>
+            <td th:text="${profile.refreshTokenPresent} ? 'Да' : 'Нет'">Да</td>
+        </tr>
+        <tr>
+            <th>ID Token есть</th>
+            <td th:text="${profile.idTokenPresent} ? 'Да' : 'Нет'">Да</td>
+        </tr>
+        <tr>
+            <th>Access Token выдан</th>
+            <td th:text="${profile.accessTokenIssuedAt} ?: 'Неизвестно'">issuedAt</td>
+        </tr>
+        <tr>
+            <th>Access Token истекает</th>
+            <td th:text="${profile.accessTokenExpiresAt} ?: 'Неизвестно'">expiresAt</td>
+        </tr>
+        <tr>
+            <th>Refresh Token выдан</th>
+            <td th:text="${profile.refreshTokenIssuedAt} ?: 'Неизвестно'">refreshIssuedAt</td>
+        </tr>
+        <tr>
+            <th>Refresh Token истекает</th>
+            <td th:text="${profile.refreshTokenExpiresAt} ?: 'Неизвестно'">refreshExpiresAt</td>
+        </tr>
+        <tr>
+            <th>Access Token expires_in</th>
+            <td th:text="${profile.accessTokenExpiresIn} != null ? ${profile.accessTokenExpiresIn} + ' сек.' : 'Неизвестно'">
+                expires_in
+            </td>
+        </tr>
+        <tr>
+            <th>Последнее сохранение</th>
+            <td th:text="${profile.lastUpdatedAt} ?: 'Неизвестно'">lastUpdatedAt</td>
+        </tr>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Маскированные токены</h2>
+
+    <p class="muted">Полные значения токенов не выводятся на страницу.</p>
+
+    <h3>Access Token</h3>
+    <div class="token-box" th:text="${profile.maskedAccessToken} ?: 'Access Token отсутствует'">
+        maskedAccessToken
     </div>
 
-    <div class="card error" th:if="${error != null}">
-        <h2>Ошибка на странице профиля</h2>
-        <pre th:text="${error}">Описание ошибки</pre>
+    <h3>ID Token</h3>
+    <div class="token-box" th:text="${profile.maskedIdToken} ?: 'ID Token отсутствует'">
+        maskedIdToken
     </div>
 
-    <div class="card">
-        <h2>Данные пользователя</h2>
-
-        <div class="grid">
-            <div class="label">Имя</div>
-            <div class="value" th:text="${userName}">Имя не получено</div>
-
-            <div class="label">Email</div>
-            <div class="value" th:text="${userEmail}">Email не получен</div>
-        </div>
-    </div>
-
-    <div class="card">
-        <h2>Состояние токенов</h2>
-
-        <div class="grid">
-            <div class="label">Token Type</div>
-            <div class="value" th:text="${tokenType}">Token Type</div>
-
-            <div class="label">Scope</div>
-            <div class="value" th:text="${scopes}">Scope</div>
-
-            <div class="label">Access Token истекает</div>
-            <div class="value" th:text="${accessTokenExpiresAt}">Время истечения Access Token</div>
-
-            <div class="label">Expires In</div>
-            <div class="value" th:text="${accessTokenExpiresIn}">Время жизни Access Token</div>
-
-            <div class="label">Refresh Token выдан</div>
-            <div class="value" th:text="${refreshTokenIssuedAt}">Время выдачи Refresh Token</div>
-
-            <div class="label">Refresh Token истекает</div>
-            <div class="value" th:text="${refreshTokenExpiresAt}">Время истечения Refresh Token</div>
-
-            <div class="label">Последнее обновление токенов</div>
-            <div class="value" th:text="${lastUpdatedAt}">Время последнего обновления</div>
-        </div>
-    </div>
-
-    <div class="card">
-        <h2>Маскированные токены</h2>
-        <p class="section-note">
-            Полные значения токенов не выводятся на страницу.
-        </p>
-
-        <p><strong>Access Token</strong></p>
-        <pre th:text="${accessToken}">Access Token</pre>
-
-        <p><strong>ID Token</strong></p>
-        <pre th:text="${idToken}">ID Token</pre>
-
-        <p><strong>Refresh Token</strong></p>
-        <pre th:text="${refreshToken}">Refresh Token</pre>
-    </div>
-
-    <div class="card">
-        <h2>Краткое сравнение токенов</h2>
-        <p class="section-note">
-            Эти данные используются для проверки обновления токенов.
-        </p>
-
-        <p><strong>Access Token</strong></p>
-        <pre th:text="${accessTokenCompareInfo}">Access Token Compare Info</pre>
-
-        <p><strong>ID Token</strong></p>
-        <pre th:text="${idTokenCompareInfo}">ID Token Compare Info</pre>
-    </div>
-
-    <div class="card">
-        <h2>Декодированное содержимое JWT</h2>
-
-        <p><strong>ID Token Payload</strong></p>
-        <pre th:text="${idTokenPayload}">ID Token Payload</pre>
-
-        <p><strong>Access Token Payload</strong></p>
-        <pre th:text="${accessTokenPayload}">Access Token Payload</pre>
-    </div>
-
-    <div class="card">
-        <h2>Действия</h2>
-
-        <div class="actions">
-            <form th:action="@{/refresh-token}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <button type="submit">Обновить токены</button>
-            </form>
-
-            <form th:action="@{/logout}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <button type="submit" class="danger">Выйти</button>
-            </form>
-        </div>
+    <h3>Refresh Token</h3>
+    <div class="token-box" th:text="${profile.maskedRefreshToken} ?: 'Refresh Token отсутствует'">
+        maskedRefreshToken
     </div>
 </div>
+
+<div class="card">
+    <h2>Идентификаторы токенов</h2>
+
+    <table>
+        <tr>
+            <th>Access Token JTI</th>
+            <td th:text="${profile.accessTokenJti} ?: 'JTI не найден'">accessTokenJti</td>
+        </tr>
+        <tr>
+            <th>ID Token JTI</th>
+            <td th:text="${profile.idTokenJti} ?: 'JTI не найден'">idTokenJti</td>
+        </tr>
+
+    </table>
+</div>
+
+<div class="card">
+    <h2>Декодированное содержимое JWT</h2>
+
+    <h3>ID Token Payload</h3>
+    <pre class="token-box" th:text="${profile.idTokenPayload} ?: 'ID Token Payload отсутствует'">
+idTokenPayload
+    </pre>
+
+    <h3>Access Token Payload</h3>
+    <pre class="token-box" th:text="${profile.accessTokenPayload} ?: 'Access Token Payload отсутствует'">
+accessTokenPayload
+    </pre>
+</div>
+
+<div class="card">
+    <h2>Действия</h2>
+
+    <div class="actions">
+        <form th:action="@{/refresh-token}" method="post">
+            <button class="button" type="submit">
+                Обновить токены
+            </button>
+        </form>
+
+        <a class="button secondary" th:href="@{/}">
+            На главную
+        </a>
+
+        <form th:action="@{/logout}" method="post">
+            <button class="button danger" type="submit">
+                Выйти
+            </button>
+        </form>
+    </div>
+</div>
+
 </body>
 </html>
-

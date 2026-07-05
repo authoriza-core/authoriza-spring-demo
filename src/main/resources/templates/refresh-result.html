@@ -1,259 +1,179 @@
-
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>Результат обновления токенов</title>
-
     <style>
         body {
-            margin: 0;
-            padding: 32px;
             font-family: Arial, sans-serif;
-            background: #f4f6f8;
-            color: #1f2933;
-        }
-
-        .page {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
-
-        .header {
-            margin-bottom: 24px;
-        }
-
-        .header h1 {
-            margin: 0 0 8px;
-            font-size: 32px;
-        }
-
-        .header p {
-            margin: 0;
-            color: #64748b;
+            max-width: 1000px;
+            margin: 40px auto;
+            line-height: 1.6;
         }
 
         .card {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
             padding: 24px;
             margin-bottom: 20px;
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
         }
 
-        .card h2 {
-            margin: 0 0 18px;
-            font-size: 22px;
+        .success {
+            color: #1b5e20;
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            padding: 12px;
+            border-radius: 6px;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: 230px 1fr;
-            gap: 12px 20px;
-            align-items: start;
-        }
-
-        .label {
-            font-weight: 700;
-            color: #334155;
-        }
-
-        .value {
-            color: #0f172a;
-            word-break: break-word;
-        }
-
-        .status {
-            display: inline-block;
-            padding: 6px 10px;
-            border-radius: 999px;
-            font-weight: 700;
-            font-size: 14px;
-        }
-
-        .status-success {
-            background: #e8f7ee;
-            color: #166534;
-        }
-
-        .status-error {
-            background: #fff1f2;
-            color: #9f1239;
-        }
-
-        .status-muted {
-            background: #e2e8f0;
-            color: #334155;
-        }
-
-        .section-note {
-            color: #64748b;
-            font-size: 14px;
-            margin-top: -8px;
-            margin-bottom: 18px;
-        }
-
-        pre {
-            margin: 8px 0 0;
-            padding: 14px;
-            background: #0f172a;
-            color: #e5e7eb;
-            border-radius: 10px;
-            overflow-x: auto;
+        .token-box {
+            background: #f6f8fa;
+            border: 1px solid #ddd;
+            padding: 12px;
+            border-radius: 6px;
+            word-break: break-all;
             white-space: pre-wrap;
-            word-break: break-word;
+            font-family: Consolas, monospace;
             font-size: 13px;
-            line-height: 1.5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        td, th {
+            border-bottom: 1px solid #eee;
+            padding: 8px;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        th {
+            width: 260px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 6px;
+            background: #1f6feb;
+            color: white;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .button.secondary {
+            background: #666;
         }
 
         .actions {
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
-        .actions a {
-            margin: 0;
-        }
-
-        button {
-            border: none;
-            border-radius: 10px;
-            padding: 11px 16px;
-            cursor: pointer;
-            background: #2563eb;
-            color: #ffffff;
-            font-size: 15px;
-            font-weight: 700;
-        }
-
-        button:hover {
-            background: #1d4ed8;
-        }
-
-        .secondary {
-            background: #475569;
-        }
-
-        .secondary:hover {
-            background: #334155;
-        }
-
-        @media (max-width: 720px) {
-            body {
-                padding: 16px;
-            }
-
-            .grid {
-                grid-template-columns: 1fr;
-                gap: 6px;
-            }
-
-            .label {
-                margin-top: 10px;
-            }
-
-            .actions {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            button {
-                width: 100%;
-            }
+        .muted {
+            color: #666;
         }
     </style>
 </head>
 <body>
-<div class="page">
-    <div class="header">
-        <h1>Результат обновления токенов</h1>
-        <p>Страница показывает итог ручного refresh-запроса и повторной попытки UserInfo.</p>
-    </div>
 
-    <div class="card">
-        <h2>Статус операции</h2>
+<h1>Результат обновления токенов</h1>
 
-        <p th:if="${success}">
-            <span class="status status-success">Успешно</span>
-        </p>
+<div class="card">
+    <h2>Статус операции</h2>
 
-        <p th:if="${!success}">
-            <span class="status status-error">Ошибка</span>
-        </p>
+    <p class="success">
+        Токены успешно обновлены.
+    </p>
 
-        <div class="grid">
-            <div class="label">Сообщение</div>
-            <div class="value" th:text="${message}">Сообщение</div>
+    <table>
+        <tr>
+            <th>Сообщение</th>
+            <td th:text="${message} ?: 'Операция выполнена успешно'">message</td>
+        </tr>
+        <tr>
+            <th>Время обновления</th>
+            <td th:text="${refreshedAt} ?: 'Неизвестно'">refreshedAt</td>
+        </tr>
+    </table>
+</div>
+
+<div class="card" th:if="${result != null && result.tokenSet() != null}">
+    <h2>Новые токены</h2>
+
+    <p class="muted">
+        Токены получены, сохранены в сессии и записаны в H2.
+    </p>
+
+    <table>
+        <tr>
+            <th>Token Type</th>
+            <td th:text="${result.tokenSet().tokenType()} ?: 'Bearer'">Bearer</td>
+        </tr>
+        <tr>
+            <th>Access Token выдан</th>
+            <td th:text="${result.tokenSet().accessTokenIssuedAt()} ?: 'Неизвестно'">issuedAt</td>
+        </tr>
+        <tr>
+            <th>Access Token истекает</th>
+            <td th:text="${result.tokenSet().accessTokenExpiresAt()} ?: 'Неизвестно'">expiresAt</td>
+        </tr>
+        <tr>
+            <th>Refresh Token выдан</th>
+            <td th:text="${result.tokenSet().refreshTokenIssuedAt()} ?: 'Неизвестно'">refreshIssuedAt</td>
+        </tr>
+        <tr>
+            <th>Refresh Token истекает</th>
+            <td th:text="${result.tokenSet().refreshTokenExpiresAt()} ?: 'Неизвестно'">refreshExpiresAt</td>
+        </tr>
+        <tr>
+            <th>Scopes</th>
+            <td>
+                <span th:if="${result.tokenSet().scopes() == null || result.tokenSet().scopes().isEmpty()}">
+                    Scopes не получены
+                </span>
+                <span th:each="scope : ${result.tokenSet().scopes()}">
+                    <code th:text="${scope}">scope</code>
+                </span>
+            </td>
+        </tr>
+    </table>
+
+        <h3>Access Token</h3>
+        <div class="token-box" th:text="${maskedAccessToken} ?: 'Access Token отсутствует'">
+            maskedAccessToken
         </div>
-    </div>
 
-    <div class="card" th:if="${success}">
-        <h2>Обновление выполнено</h2>
-
-        <p class="section-note">
-            Новые токены получены и сохранены в сессии и H2.
-        </p>
-
-        <div class="grid">
-            <div class="label">Access Token</div>
-            <div class="value" th:text="${newAccessToken}">Маскированный Access Token</div>
-
-            <div class="label">Refresh Token</div>
-            <div class="value" th:text="${newRefreshToken}">Маскированный Refresh Token</div>
-
-            <div class="label">ID Token</div>
-            <div class="value" th:text="${newIdToken}">Маскированный ID Token</div>
-
-            <div class="label">Token Type</div>
-            <div class="value" th:text="${tokenType}">Bearer</div>
-
-            <div class="label">Scope</div>
-            <div class="value" th:text="${scope}">Scope</div>
-
-            <div class="label">Access Token истекает</div>
-            <div class="value" th:text="${expiresAt}">Время истечения Access Token</div>
-
-            <div class="label">Expires In</div>
-            <div class="value">
-                <span th:text="${expiresIn}">Время жизни</span>
-                секунд
-            </div>
-
-            <div class="label">Refresh Token выдан</div>
-            <div class="value" th:text="${refreshTokenIssuedAt}">Время выдачи Refresh Token</div>
-
-            <div class="label">Refresh Token истекает</div>
-            <div class="value" th:text="${refreshTokenExpiresAt}">Время истечения Refresh Token</div>
+        <h3>ID Token</h3>
+        <div class="token-box" th:text="${maskedIdToken} ?: 'ID Token отсутствует'">
+            maskedIdToken
         </div>
-    </div>
 
-    <div class="card" th:if="${success}">
-        <h2>Ответ Token Endpoint</h2>
-
-        <p class="section-note">
-            Полный ответ Token Endpoint.
-        </p>
-
-        <p th:text="${tokenEndpointResponse}">
-            Token Endpoint вернул новые токены. Полный ответ скрыт.
-        </p>
-    </div>
-
-    <div class="card">
-        <h2>Действия</h2>
-
-        <div class="actions">
-
-            <a href="/profile">
-                <button type="button">Вернуться в профиль</button>
-            </a>
-
+        <h3>Refresh Token</h3>
+        <div class="token-box" th:text="${maskedRefreshToken} ?: 'Refresh Token отсутствует'">
+            maskedRefreshToken
         </div>
+</div>
+
+<div class="card">
+    <h2>Действия</h2>
+
+    <div class="actions">
+        <a class="button" th:href="@{/profile}">
+            Вернуться в профиль
+        </a>
+
+        <a class="button secondary" th:href="@{/}">
+            На главную
+        </a>
     </div>
 </div>
+
 </body>
 </html>
-
