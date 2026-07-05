@@ -460,7 +460,7 @@ authoriza-spring-demo/
 
 Страница результата ручного обновления токенов.
 
-![Обновление](/docs/screenshots/refresh-result.png)
+![Обновление](screenshots/refresh-result.png)
 
 ## Возможные проблемы и решения
 
