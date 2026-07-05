@@ -31,8 +31,7 @@ public class AccessTokenAutoRefreshFilter extends OncePerRequestFilter {
     public AccessTokenAutoRefreshFilter(
             OAuth2AuthorizedClientFacade authorizedClientService,
             TokenRefreshService tokenRefreshService,
-            TokenCleanupService tokenCleanupService
-    ) {
+            TokenCleanupService tokenCleanupService) {
         this.authorizedClientService = authorizedClientService;
         this.tokenRefreshService = tokenRefreshService;
         this.tokenCleanupService = tokenCleanupService;
@@ -42,29 +41,23 @@ public class AccessTokenAutoRefreshFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+            FilterChain filterChain) throws ServletException, IOException {
         try {
-            Authentication authentication =
-                    SecurityContextHolder.getContext().getAuthentication();
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
             if (authentication instanceof OAuth2AuthenticationToken oauth2AuthenticationToken) {
-                OAuth2AuthorizedClient authorizedClient =
-                        authorizedClientService.loadAuthorizedClient(
-                                REGISTRATION_ID,
-                                oauth2AuthenticationToken,
-                                request
-                        );
+                OAuth2AuthorizedClient authorizedClient = authorizedClientService.loadAuthorizedClient(
+                        REGISTRATION_ID,
+                        oauth2AuthenticationToken,
+                        request);
 
                 if (tokenRefreshService.shouldRefreshAccessToken(
                         authorizedClient,
-                        REFRESH_BEFORE_EXPIRATION
-                )) {
+                        REFRESH_BEFORE_EXPIRATION)) {
                     TokenRefreshResult refreshResult = tokenRefreshService.refresh(
                             oauth2AuthenticationToken,
                             request,
-                            response
-                    );
+                            response);
 
                     if (!refreshResult.success()) {
                         handleRefreshFailure(request, response, refreshResult);
@@ -86,8 +79,7 @@ public class AccessTokenAutoRefreshFilter extends OncePerRequestFilter {
     private void handleRefreshFailure(
             HttpServletRequest request,
             HttpServletResponse response,
-            TokenRefreshResult refreshResult
-    ) throws IOException {
+            TokenRefreshResult refreshResult) throws IOException {
         if ("refresh_token_expired".equals(refreshResult.errorCode())) {
             tokenCleanupService.clearDefaultAuthorization(request);
 

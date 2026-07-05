@@ -18,8 +18,7 @@ public class RestoreSessionController {
     @GetMapping("/restore-session")
     public String restoreSession(
             HttpServletRequest request,
-            HttpServletResponse response
-    ) {
+            HttpServletResponse response) {
         boolean restored = sessionRestoreService.restore(request, response);
 
         if (restored) {
