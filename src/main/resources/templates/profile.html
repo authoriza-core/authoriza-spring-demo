@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль OIDC-клиента</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1100px;
+            margin: 40px auto;
+            line-height: 1.6;
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            color: #1b5e20;
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .error {
+            color: #b71c1c;
+            background: #ffebee;
+            border: 1px solid #ef9a9a;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .muted {
+            color: #666;
+        }
+
+        .token-box {
+            background: #f6f8fa;
+            border: 1px solid #ddd;
+            padding: 12px;
+            border-radius: 6px;
+            word-break: break-all;
+            white-space: pre-wrap;
+            font-family: Consolas, monospace;
+            font-size: 13px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        td, th {
+            border-bottom: 1px solid #eee;
+            padding: 8px;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        th {
+            width: 260px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 6px;
+            background: #1f6feb;
+            color: white;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .button.secondary {
+            background: #666;
+        }
+
+        .button.danger {
+            background: #c62828;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Профиль OIDC-клиента</h1>
+
+<p class="success" th:if="${param.restored}">
+    Сессия успешно восстановлена из сохранённых токенов.
+</p>
+
+<p class="error" th:if="${param.refreshError}">
+    При автоматическом обновлении токенов произошла ошибка.
+</p>
+
+<div class="card">
+    <h2>Данные пользователя</h2>
+
+    <table>
+        <tr>
+            <th>Principal Name</th>
+            <td th:text="${profile.principalName} ?: 'Не получено'">principalName</td>
+        </tr>
+        <tr>
+            <th>Display Name</th>
+            <td th:text="${profile.displayName} ?: 'Не получено'">displayName</td>
+        </tr>
+        <tr>
+            <th>Email</th>
+            <td th:text="${profile.email} ?: 'Не получен'">email</td>
+        </tr>
+        <tr>
+            <th>Subject</th>
+            <td th:text="${profile.subject} ?: 'Не получен'">subject</td>
+        </tr>
+        <tr>
+            <th>Client Registration ID</th>
+            <td th:text="${profile.clientRegistrationId} ?: 'Не получен'">clientRegistrationId</td>
+        </tr>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Состояние токенов</h2>
+
+    <table>
+        <tr>
+            <th>Token Type</th>
+            <td th:text="${profile.tokenType} ?: 'Bearer'">Bearer</td>
+        </tr>
+        <tr>
+            <th>Scopes</th>
+            <td>
+                <span th:if="${profile.scopes == null || profile.scopes.isEmpty()}">Scopes не получены</span>
+                <span th:each="scope : ${profile.scopes}">
+                    <code th:text="${scope}">scope</code>
+                </span>
+            </td>
+        </tr>
+        <tr>
+            <th>Access Token есть</th>
+            <td th:text="${profile.accessTokenPresent} ? 'Да' : 'Нет'">Да</td>
+        </tr>
+        <tr>
+            <th>Refresh Token есть</th>
+            <td th:text="${profile.refreshTokenPresent} ? 'Да' : 'Нет'">Да</td>
+        </tr>
+        <tr>
+            <th>ID Token есть</th>
+            <td th:text="${profile.idTokenPresent} ? 'Да' : 'Нет'">Да</td>
+        </tr>
+        <tr>
+            <th>Access Token выдан</th>
+            <td th:text="${profile.accessTokenIssuedAt} ?: 'Неизвестно'">issuedAt</td>
+        </tr>
+        <tr>
+            <th>Access Token истекает</th>
+            <td th:text="${profile.accessTokenExpiresAt} ?: 'Неизвестно'">expiresAt</td>
+        </tr>
+        <tr>
+            <th>Refresh Token выдан</th>
+            <td th:text="${profile.refreshTokenIssuedAt} ?: 'Неизвестно'">refreshIssuedAt</td>
+        </tr>
+        <tr>
+            <th>Refresh Token истекает</th>
+            <td th:text="${profile.refreshTokenExpiresAt} ?: 'Неизвестно'">refreshExpiresAt</td>
+        </tr>
+        <tr>
+            <th>Access Token expires_in</th>
+            <td th:text="${profile.accessTokenExpiresIn} != null ? ${profile.accessTokenExpiresIn} + ' сек.' : 'Неизвестно'">
+                expires_in
+            </td>
+        </tr>
+        <tr>
+            <th>Последнее сохранение</th>
+            <td th:text="${profile.lastUpdatedAt} ?: 'Неизвестно'">lastUpdatedAt</td>
+        </tr>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Маскированные токены</h2>
+
+    <p class="muted">Полные значения токенов не выводятся на страницу.</p>
+
+    <h3>Access Token</h3>
+    <div class="token-box" th:text="${profile.maskedAccessToken} ?: 'Access Token отсутствует'">
+        maskedAccessToken
+    </div>
+
+    <h3>ID Token</h3>
+    <div class="token-box" th:text="${profile.maskedIdToken} ?: 'ID Token отсутствует'">
+        maskedIdToken
+    </div>
+
+    <h3>Refresh Token</h3>
+    <div class="token-box" th:text="${profile.maskedRefreshToken} ?: 'Refresh Token отсутствует'">
+        maskedRefreshToken
+    </div>
+</div>
+
+<div class="card">
+    <h2>Идентификаторы токенов</h2>
+
+    <table>
+        <tr>
+            <th>Access Token JTI</th>
+            <td th:text="${profile.accessTokenJti} ?: 'JTI не найден'">accessTokenJti</td>
+        </tr>
+        <tr>
+            <th>ID Token JTI</th>
+            <td th:text="${profile.idTokenJti} ?: 'JTI не найден'">idTokenJti</td>
+        </tr>
+
+    </table>
+</div>
+
+<div class="card">
+    <h2>Декодированное содержимое JWT</h2>
+
+    <h3>ID Token Payload</h3>
+    <pre class="token-box" th:text="${profile.idTokenPayload} ?: 'ID Token Payload отсутствует'">
+idTokenPayload
+    </pre>
+
+    <h3>Access Token Payload</h3>
+    <pre class="token-box" th:text="${profile.accessTokenPayload} ?: 'Access Token Payload отсутствует'">
+accessTokenPayload
+    </pre>
+</div>
+
+<div class="card">
+    <h2>Действия</h2>
+
+    <div class="actions">
+        <form th:action="@{/refresh-token}" method="post">
+            <button class="button" type="submit">
+                Обновить токены
+            </button>
+        </form>
+
+        <a class="button secondary" th:href="@{/}">
+            На главную
+        </a>
+
+        <form th:action="@{/logout}" method="post">
+            <button class="button danger" type="submit">
+                Выйти
+            </button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

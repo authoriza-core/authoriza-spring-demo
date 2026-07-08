@@ -1,0 +1,46 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: oidc-client
+
+  datasource:
+    url: jdbc:h2:file:./data/oidc-client-db
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+  h2:
+    console:
+      enabled: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          autoriza:
+            client-id: "${AUTORIZA_CLIENT_ID}"
+            client-secret: "${AUTORIZA_CLIENT_SECRET}"
+            client-authentication-method: client_secret_basic
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - email
+              - offline_access
+        provider:
+          autoriza:
+            issuer-uri: https://oidc.authoriza.ru/oidc
+
+logging:
+  level:
+    "[org.springframework.security]": DEBUG
+    "[org.springframework.security.oauth2]": TRACE
+    "[org.springframework.web.client.RestTemplate]": DEBUG

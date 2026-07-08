@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>OIDC Demo Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            line-height: 1.6;
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 6px;
+            background: #1f6feb;
+            color: white;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .button.secondary {
+            background: #666;
+        }
+
+        .button.danger {
+            background: #c62828;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .muted {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<h1>OIDC Demo Client</h1>
+
+<p>Демонстрационный клиент для входа через Авторизу и работы с токенами.</p>
+
+<div class="card" th:if="${!authenticated}">
+    <h2>Вход в систему</h2>
+
+    <p class="muted">Пользователь не авторизован.</p>
+
+    <p>Для получения токенов и открытия профиля нужно выполнить вход.</p>
+
+    <a class="button" th:href="@{/oauth2/authorization/autoriza}">
+        Войти через Авторизу
+    </a>
+
+    <p th:if="${param.skipRestore}" class="muted">
+        Сессия не была восстановлена. Можно выполнить вход заново.
+    </p>
+</div>
+
+<div class="card" th:if="${authenticated}">
+    <h2>Текущая сессия</h2>
+
+    <p>Пользователь авторизован.</p>
+
+    <p>
+        <strong>Имя:</strong>
+        <span th:text="${principalName}">principalName</span>
+    </p>
+
+    <div class="actions">
+        <a class="button" th:href="@{/profile}">
+            Открыть профиль
+        </a>
+
+        <form th:action="@{/logout}" method="post">
+            <button class="button danger" type="submit">
+                Выйти
+            </button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>
