@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Профиль OIDC-клиента</title>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -54,7 +55,8 @@
             border-collapse: collapse;
         }
 
-        td, th {
+        td,
+        th {
             border-bottom: 1px solid #eee;
             padding: 8px;
             vertical-align: top;
@@ -93,6 +95,7 @@
         }
     </style>
 </head>
+
 <body>
 
 <h1>Профиль OIDC-клиента</h1>
@@ -111,23 +114,37 @@
     <table>
         <tr>
             <th>Principal Name</th>
-            <td th:text="${profile.principalName} ?: 'Не получено'">principalName</td>
+            <td th:text="${profile.user.principalName ?: 'Не получено'}">
+                principalName
+            </td>
         </tr>
+
         <tr>
             <th>Display Name</th>
-            <td th:text="${profile.displayName} ?: 'Не получено'">displayName</td>
+            <td th:text="${profile.user.displayName ?: 'Не получено'}">
+                displayName
+            </td>
         </tr>
+
         <tr>
             <th>Email</th>
-            <td th:text="${profile.email} ?: 'Не получен'">email</td>
+            <td th:text="${profile.user.email ?: 'Не получен'}">
+                email
+            </td>
         </tr>
+
         <tr>
             <th>Subject</th>
-            <td th:text="${profile.subject} ?: 'Не получен'">subject</td>
+            <td th:text="${profile.user.subject ?: 'Не получен'}">
+                subject
+            </td>
         </tr>
+
         <tr>
             <th>Client Registration ID</th>
-            <td th:text="${profile.clientRegistrationId} ?: 'Не получен'">clientRegistrationId</td>
+            <td th:text="${profile.user.clientRegistrationId ?: 'Не получен'}">
+                clientRegistrationId
+            </td>
         </tr>
     </table>
 </div>
@@ -138,54 +155,93 @@
     <table>
         <tr>
             <th>Token Type</th>
-            <td th:text="${profile.tokenType} ?: 'Bearer'">Bearer</td>
+            <td th:text="${profile.rawTokens.tokenType ?: 'Bearer'}">
+                Bearer
+            </td>
         </tr>
+
         <tr>
             <th>Scopes</th>
             <td>
-                <span th:if="${profile.scopes == null || profile.scopes.isEmpty()}">Scopes не получены</span>
-                <span th:each="scope : ${profile.scopes}">
+                <span th:if="${profile.rawTokens.scopes == null
+                        || profile.rawTokens.scopes.isEmpty()}">
+                    Scopes не получены
+                </span>
+
+                <span th:each="scope : ${profile.rawTokens.scopes}">
                     <code th:text="${scope}">scope</code>
                 </span>
             </td>
         </tr>
+
         <tr>
             <th>Access Token есть</th>
-            <td th:text="${profile.accessTokenPresent} ? 'Да' : 'Нет'">Да</td>
+            <td th:text="${profile.validation.accessTokenPresent ? 'Да' : 'Нет'}">
+                Да
+            </td>
         </tr>
+
         <tr>
             <th>Refresh Token есть</th>
-            <td th:text="${profile.refreshTokenPresent} ? 'Да' : 'Нет'">Да</td>
+            <td th:text="${profile.validation.refreshTokenPresent ? 'Да' : 'Нет'}">
+                Да
+            </td>
         </tr>
+
         <tr>
             <th>ID Token есть</th>
-            <td th:text="${profile.idTokenPresent} ? 'Да' : 'Нет'">Да</td>
+            <td th:text="${profile.validation.idTokenPresent ? 'Да' : 'Нет'}">
+                Да
+            </td>
         </tr>
+
         <tr>
             <th>Access Token выдан</th>
-            <td th:text="${profile.accessTokenIssuedAt} ?: 'Неизвестно'">issuedAt</td>
+            <td th:text="${profile.rawTokens.accessTokenIssuedAt
+                    ?: 'Неизвестно'}">
+                issuedAt
+            </td>
         </tr>
+
         <tr>
             <th>Access Token истекает</th>
-            <td th:text="${profile.accessTokenExpiresAt} ?: 'Неизвестно'">expiresAt</td>
+            <td th:text="${profile.rawTokens.accessTokenExpiresAt
+                    ?: 'Неизвестно'}">
+                expiresAt
+            </td>
         </tr>
+
         <tr>
             <th>Refresh Token выдан</th>
-            <td th:text="${profile.refreshTokenIssuedAt} ?: 'Неизвестно'">refreshIssuedAt</td>
+            <td th:text="${profile.rawTokens.refreshTokenIssuedAt
+                    ?: 'Неизвестно'}">
+                refreshIssuedAt
+            </td>
         </tr>
+
         <tr>
             <th>Refresh Token истекает</th>
-            <td th:text="${profile.refreshTokenExpiresAt} ?: 'Неизвестно'">refreshExpiresAt</td>
+            <td th:text="${profile.rawTokens.refreshTokenExpiresAt
+                    ?: 'Неизвестно'}">
+                refreshExpiresAt
+            </td>
         </tr>
+
         <tr>
             <th>Access Token expires_in</th>
-            <td th:text="${profile.accessTokenExpiresIn} != null ? ${profile.accessTokenExpiresIn} + ' сек.' : 'Неизвестно'">
+            <td th:text="${profile.rawTokens.accessTokenExpiresIn != null
+                    ? profile.rawTokens.accessTokenExpiresIn + ' сек.'
+                    : 'Неизвестно'}">
                 expires_in
             </td>
         </tr>
+
         <tr>
             <th>Последнее сохранение</th>
-            <td th:text="${profile.lastUpdatedAt} ?: 'Неизвестно'">lastUpdatedAt</td>
+            <td th:text="${profile.validation.lastUpdatedAt
+                    ?: 'Неизвестно'}">
+                lastUpdatedAt
+            </td>
         </tr>
     </table>
 </div>
@@ -193,20 +249,31 @@
 <div class="card">
     <h2>Маскированные токены</h2>
 
-    <p class="muted">Полные значения токенов не выводятся на страницу.</p>
+    <p class="muted">
+        Полные значения токенов не выводятся на страницу.
+    </p>
 
     <h3>Access Token</h3>
-    <div class="token-box" th:text="${profile.maskedAccessToken} ?: 'Access Token отсутствует'">
+    <div
+            class="token-box"
+            th:text="${profile.rawTokens.maskedAccessToken
+                    ?: 'Access Token отсутствует'}">
         maskedAccessToken
     </div>
 
     <h3>ID Token</h3>
-    <div class="token-box" th:text="${profile.maskedIdToken} ?: 'ID Token отсутствует'">
+    <div
+            class="token-box"
+            th:text="${profile.rawTokens.maskedIdToken
+                    ?: 'ID Token отсутствует'}">
         maskedIdToken
     </div>
 
     <h3>Refresh Token</h3>
-    <div class="token-box" th:text="${profile.maskedRefreshToken} ?: 'Refresh Token отсутствует'">
+    <div
+            class="token-box"
+            th:text="${profile.rawTokens.maskedRefreshToken
+                    ?: 'Refresh Token отсутствует'}">
         maskedRefreshToken
     </div>
 </div>
@@ -217,13 +284,26 @@
     <table>
         <tr>
             <th>Access Token JTI</th>
-            <td th:text="${profile.accessTokenJti} ?: 'JTI не найден'">accessTokenJti</td>
-        </tr>
-        <tr>
-            <th>ID Token JTI</th>
-            <td th:text="${profile.idTokenJti} ?: 'JTI не найден'">idTokenJti</td>
+            <td th:text="${profile.parsedTokens.accessTokenJti
+                    ?: 'JTI не найден'}">
+                accessTokenJti
+            </td>
         </tr>
 
+        <tr>
+            <th>ID Token JTI</th>
+            <td th:text="${profile.parsedTokens.idTokenJti
+                    ?: 'JTI не найден'}">
+                idTokenJti
+            </td>
+        </tr>
+
+        <tr>
+            <th>Совпадает JTI</th>
+            <td th:text="${profile.validation.sameJti ? 'Да' : 'Нет'}">
+                Нет
+            </td>
+        </tr>
     </table>
 </div>
 
@@ -231,12 +311,22 @@
     <h2>Декодированное содержимое JWT</h2>
 
     <h3>ID Token Payload</h3>
-    <pre class="token-box" th:text="${profile.idTokenPayload} ?: 'ID Token Payload отсутствует'">
+    <pre
+            class="token-box"
+            th:text="${profile.parsedTokens.idTokenPayload != null
+                    && !profile.parsedTokens.idTokenPayload.isEmpty()
+                    ? profile.parsedTokens.idTokenPayload
+                    : 'ID Token Payload отсутствует'}">
 idTokenPayload
     </pre>
 
     <h3>Access Token Payload</h3>
-    <pre class="token-box" th:text="${profile.accessTokenPayload} ?: 'Access Token Payload отсутствует'">
+    <pre
+            class="token-box"
+            th:text="${profile.parsedTokens.accessTokenPayload != null
+                    && !profile.parsedTokens.accessTokenPayload.isEmpty()
+                    ? profile.parsedTokens.accessTokenPayload
+                    : 'Access Token Payload отсутствует'}">
 accessTokenPayload
     </pre>
 </div>

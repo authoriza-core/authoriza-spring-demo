@@ -25,54 +25,63 @@ public class TokenEndpointClient {
         this.tokenScopeParser = tokenScopeParser;
     }
 
-public TokenEndpointResponse refreshToken(
-        ClientRegistration clientRegistration,
-        String refreshTokenValue
-) {
-    if (clientRegistration == null) {
-        throw new IllegalArgumentException("Client registration must not be null");
+    public TokenEndpointResponse refreshToken(
+            ClientRegistration clientRegistration,
+            String refreshTokenValue
+    ) {
+        if (clientRegistration == null) {
+            throw new IllegalArgumentException(
+                    "Client registration must not be null"
+            );
+        }
+
+        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Refresh token must not be blank"
+            );
+        }
+
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("grant_type", "refresh_token");
+        form.add("refresh_token", refreshTokenValue);
+
+        Map<String, Object> response = restClient.post()
+                .uri(clientRegistration.getProviderDetails().getTokenUri())
+                .headers(headers -> headers.setBasicAuth(
+                        clientRegistration.getClientId(),
+                        clientRegistration.getClientSecret()
+                ))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(form)
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {
+                });
+
+        if (response == null) {
+            throw new IllegalStateException(
+                    "Token Endpoint returned empty response"
+            );
+        }
+
+        String scope = getStringValue(response, "scope");
+        Set<String> scopes = tokenScopeParser.parse(scope);
+
+        return new TokenEndpointResponse(
+                getStringValue(response, "access_token"),
+                getStringValue(response, "refresh_token"),
+                getStringValue(response, "id_token"),
+                getStringValue(response, "token_type"),
+                getIntegerValue(response, "expires_in"),
+                scope,
+                scopes,
+                Instant.now()
+        );
     }
 
-    if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
-        throw new IllegalArgumentException("Refresh token must not be blank");
-    }
-
-    MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-    form.add("grant_type", "refresh_token");
-    form.add("refresh_token", refreshTokenValue);
-
-    Map<String, Object> response = restClient.post()
-            .uri(clientRegistration.getProviderDetails().getTokenUri())
-            .headers(headers -> headers.setBasicAuth(
-                    clientRegistration.getClientId(),
-                    clientRegistration.getClientSecret()
-            ))
-            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .body(form)
-            .retrieve()
-            .body(new ParameterizedTypeReference<>() {
-            });
-
-    if (response == null) {
-        throw new IllegalStateException("Token Endpoint returned empty response");
-    }
-
-    String scope = getStringValue(response, "scope");
-    Set<String> scopes = tokenScopeParser.parse(scope);
-
-    return new TokenEndpointResponse(
-            getStringValue(response, "access_token"),
-            getStringValue(response, "refresh_token"),
-            getStringValue(response, "id_token"),
-            getStringValue(response, "token_type"),
-            getIntegerValue(response, "expires_in"),
-            scope,
-            scopes,
-            Instant.now()
-    );
-}
-
-    private String getStringValue(Map<String, Object> response, String key) {
+    private String getStringValue(
+            Map<String, Object> response,
+            String key
+    ) {
         Object value = response.get(key);
 
         if (value == null) {
@@ -82,7 +91,10 @@ public TokenEndpointResponse refreshToken(
         return String.valueOf(value);
     }
 
-    private Integer getIntegerValue(Map<String, Object> response, String key) {
+    private Integer getIntegerValue(
+            Map<String, Object> response,
+            String key
+    ) {
         Object value = response.get(key);
 
         if (value == null) {
