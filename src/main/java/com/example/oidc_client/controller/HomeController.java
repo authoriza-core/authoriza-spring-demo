@@ -33,7 +33,9 @@ public class HomeController {
     ) {
         boolean authenticated = authentication != null
                 && authentication.isAuthenticated()
-                && !"anonymousUser".equals(String.valueOf(authentication.getPrincipal()));
+                && !"anonymousUser".equals(
+                        String.valueOf(authentication.getPrincipal())
+                );
 
         boolean skipRestore = request.getParameter("skipRestore") != null;
 
@@ -74,40 +76,123 @@ public class HomeController {
 
         model.addAttribute("profile", profile);
 
-        model.addAttribute("principalName", profile.getPrincipalName());
-        model.addAttribute("displayName", profile.getDisplayName());
-        model.addAttribute("email", profile.getEmail());
-        model.addAttribute("subject", profile.getSubject());
+        model.addAttribute(
+                "principalName",
+                profile.getUser().getPrincipalName()
+        );
+        model.addAttribute(
+                "displayName",
+                profile.getUser().getDisplayName()
+        );
+        model.addAttribute(
+                "email",
+                profile.getUser().getEmail()
+        );
+        model.addAttribute(
+                "subject",
+                profile.getUser().getSubject()
+        );
+        model.addAttribute(
+                "clientRegistrationId",
+                profile.getUser().getClientRegistrationId()
+        );
 
-        model.addAttribute("clientRegistrationId", profile.getClientRegistrationId());
-        model.addAttribute("tokenType", profile.getTokenType());
+        model.addAttribute(
+                "tokenType",
+                profile.getRawTokens().getTokenType()
+        );
 
-        model.addAttribute("accessToken", profile.getAccessToken());
-        model.addAttribute("maskedAccessToken", profile.getMaskedAccessToken());
-        model.addAttribute("refreshToken", profile.getRefreshToken());
-        model.addAttribute("maskedRefreshToken", profile.getMaskedRefreshToken());
-        model.addAttribute("idToken", profile.getIdToken());
-        model.addAttribute("maskedIdToken", profile.getMaskedIdToken());
+        model.addAttribute(
+                "accessToken",
+                profile.getRawTokens().getAccessToken()
+        );
+        model.addAttribute(
+                "maskedAccessToken",
+                profile.getRawTokens().getMaskedAccessToken()
+        );
+        model.addAttribute(
+                "refreshToken",
+                profile.getRawTokens().getRefreshToken()
+        );
+        model.addAttribute(
+                "maskedRefreshToken",
+                profile.getRawTokens().getMaskedRefreshToken()
+        );
+        model.addAttribute(
+                "idToken",
+                profile.getRawTokens().getIdToken()
+        );
+        model.addAttribute(
+                "maskedIdToken",
+                profile.getRawTokens().getMaskedIdToken()
+        );
 
-        model.addAttribute("accessTokenIssuedAt", profile.getAccessTokenIssuedAt());
-        model.addAttribute("accessTokenExpiresAt", profile.getAccessTokenExpiresAt());
-        model.addAttribute("refreshTokenIssuedAt", profile.getRefreshTokenIssuedAt());
-        model.addAttribute("refreshTokenExpiresAt", profile.getRefreshTokenExpiresAt());
+        model.addAttribute(
+                "accessTokenIssuedAt",
+                profile.getRawTokens().getAccessTokenIssuedAt()
+        );
+        model.addAttribute(
+                "accessTokenExpiresAt",
+                profile.getRawTokens().getAccessTokenExpiresAt()
+        );
+        model.addAttribute(
+                "refreshTokenIssuedAt",
+                profile.getRawTokens().getRefreshTokenIssuedAt()
+        );
+        model.addAttribute(
+                "refreshTokenExpiresAt",
+                profile.getRawTokens().getRefreshTokenExpiresAt()
+        );
+        model.addAttribute(
+                "accessTokenExpiresIn",
+                profile.getRawTokens().getAccessTokenExpiresIn()
+        );
 
-        model.addAttribute("scopes", profile.getScopes());
+        model.addAttribute(
+                "scopes",
+                profile.getRawTokens().getScopes()
+        );
 
-        model.addAttribute("accessTokenPayload", profile.getAccessTokenPayload());
-        model.addAttribute("idTokenPayload", profile.getIdTokenPayload());
+        model.addAttribute(
+                "accessTokenPayload",
+                profile.getParsedTokens().getAccessTokenPayload()
+        );
+        model.addAttribute(
+                "idTokenPayload",
+                profile.getParsedTokens().getIdTokenPayload()
+        );
 
-        model.addAttribute("accessTokenJti", profile.getAccessTokenJti());
-        model.addAttribute("idTokenJti", profile.getIdTokenJti());
-        model.addAttribute("sameJti", profile.isSameJti());
+        model.addAttribute(
+                "accessTokenJti",
+                profile.getParsedTokens().getAccessTokenJti()
+        );
+        model.addAttribute(
+                "idTokenJti",
+                profile.getParsedTokens().getIdTokenJti()
+        );
 
-        model.addAttribute("accessTokenPresent", profile.isAccessTokenPresent());
-        model.addAttribute("refreshTokenPresent", profile.isRefreshTokenPresent());
-        model.addAttribute("idTokenPresent", profile.isIdTokenPresent());
+        model.addAttribute(
+                "sameJti",
+                profile.getValidation().isSameJti()
+        );
 
-        model.addAttribute("lastUpdatedAt", profile.getLastUpdatedAt());
+        model.addAttribute(
+                "accessTokenPresent",
+                profile.getValidation().isAccessTokenPresent()
+        );
+        model.addAttribute(
+                "refreshTokenPresent",
+                profile.getValidation().isRefreshTokenPresent()
+        );
+        model.addAttribute(
+                "idTokenPresent",
+                profile.getValidation().isIdTokenPresent()
+        );
+
+        model.addAttribute(
+                "lastUpdatedAt",
+                profile.getValidation().getLastUpdatedAt()
+        );
 
         return "profile";
     }

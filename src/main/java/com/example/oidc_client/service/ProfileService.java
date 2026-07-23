@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -42,22 +43,23 @@ public class ProfileService {
             HttpServletRequest request
     ) {
         ProfileViewData profileViewData = new ProfileViewData();
-        profileViewData.setClientRegistrationId(REGISTRATION_ID);
-        profileViewData.setLastUpdatedAt(Instant.now());
+
+        profileViewData.getUser().setClientRegistrationId(REGISTRATION_ID);
+        profileViewData.getValidation().setLastUpdatedAt(Instant.now());
 
         if (authentication == null) {
+            profileViewData.updateValidation();
             return profileViewData;
         }
 
-        profileViewData.setPrincipalName(authentication.getName());
+        profileViewData.getUser().setPrincipalName(authentication.getName());
 
         fillUserInfo(profileViewData, authentication);
-        if (request != null
-                && profileViewData.getIdToken() != null
-                && !profileViewData.getIdToken().isBlank()) {
+
+        if (request != null && hasText(profileViewData.getRawTokens().getIdToken())) {
             request.getSession(true).setAttribute(
                     "latestIdToken",
-                    profileViewData.getIdToken()
+                    profileViewData.getRawTokens().getIdToken()
             );
         }
 
@@ -80,10 +82,11 @@ public class ProfileService {
         }
 
         storedTokenData.ifPresent(tokenData ->
-                profileViewData.setLastUpdatedAt(tokenData.savedAt())
+                profileViewData.getValidation().setLastUpdatedAt(tokenData.savedAt())
         );
 
         fillJwtPayloads(profileViewData);
+        profileViewData.updateValidation();
 
         return profileViewData;
     }
@@ -95,17 +98,19 @@ public class ProfileService {
         Object principal = authentication.getPrincipal();
 
         if (principal instanceof OidcUser oidcUser) {
-            profileViewData.setSubject(oidcUser.getSubject());
-            profileViewData.setEmail(oidcUser.getEmail());
-            profileViewData.setDisplayName(resolveDisplayName(oidcUser));
+            profileViewData.getUser().setSubject(oidcUser.getSubject());
+            profileViewData.getUser().setEmail(oidcUser.getEmail());
+            profileViewData.getUser().setDisplayName(resolveDisplayName(oidcUser));
 
             if (oidcUser.getIdToken() != null) {
                 String idTokenValue = oidcUser.getIdToken().getTokenValue();
 
-                profileViewData.setIdToken(idTokenValue);
-                profileViewData.setMaskedIdToken(tokenMasker.mask(idTokenValue));
+                profileViewData.getRawTokens().setIdToken(idTokenValue);
+                profileViewData.getRawTokens().setMaskedIdToken(
+                        tokenMasker.mask(idTokenValue)
+                );
 
-                profileViewData.setIdTokenPayload(
+                profileViewData.getParsedTokens().setIdTokenPayload(
                         jwtPayloadDecoder.decodePayload(idTokenValue)
                 );
             }
@@ -113,25 +118,25 @@ public class ProfileService {
             return;
         }
 
-        profileViewData.setDisplayName(authentication.getName());
+        profileViewData.getUser().setDisplayName(authentication.getName());
     }
 
     private String resolveDisplayName(OidcUser oidcUser) {
         String fullName = oidcUser.getFullName();
 
-        if (fullName != null && !fullName.isBlank()) {
+        if (hasText(fullName)) {
             return fullName;
         }
 
         String preferredUsername = oidcUser.getPreferredUsername();
 
-        if (preferredUsername != null && !preferredUsername.isBlank()) {
+        if (hasText(preferredUsername)) {
             return preferredUsername;
         }
 
         String email = oidcUser.getEmail();
 
-        if (email != null && !email.isBlank()) {
+        if (hasText(email)) {
             return email;
         }
 
@@ -144,64 +149,64 @@ public class ProfileService {
             HttpServletRequest request
     ) {
         if (authorizedClient.getAccessToken() != null) {
-            profileViewData.setAccessToken(
-                    authorizedClient.getAccessToken().getTokenValue()
+            String accessTokenValue =
+                    authorizedClient.getAccessToken().getTokenValue();
+
+            profileViewData.getRawTokens().setAccessToken(accessTokenValue);
+            profileViewData.getRawTokens().setMaskedAccessToken(
+                    tokenMasker.mask(accessTokenValue)
             );
 
-            profileViewData.setMaskedAccessToken(
-                    tokenMasker.mask(
-                            authorizedClient.getAccessToken().getTokenValue()
-                    )
-            );
+            if (authorizedClient.getAccessToken().getTokenType() != null) {
+                profileViewData.getRawTokens().setTokenType(
+                        authorizedClient.getAccessToken().getTokenType().getValue()
+                );
+            }
 
-            profileViewData.setTokenType(
-                    authorizedClient.getAccessToken().getTokenType().getValue()
-            );
-
-            profileViewData.setAccessTokenIssuedAt(
+            profileViewData.getRawTokens().setAccessTokenIssuedAt(
                     authorizedClient.getAccessToken().getIssuedAt()
             );
-
-            profileViewData.setAccessTokenExpiresAt(
+            profileViewData.getRawTokens().setAccessTokenExpiresAt(
                     authorizedClient.getAccessToken().getExpiresAt()
             );
+
             if (authorizedClient.getAccessToken().getExpiresAt() != null) {
-                long expiresIn = java.time.Duration.between(
-                        java.time.Instant.now(),
+                long expiresIn = Duration.between(
+                        Instant.now(),
                         authorizedClient.getAccessToken().getExpiresAt()
                 ).toSeconds();
 
-                profileViewData.setAccessTokenExpiresIn(Math.max(expiresIn, 0));
+                profileViewData.getRawTokens().setAccessTokenExpiresIn(
+                        Math.max(expiresIn, 0)
+                );
             }
 
-            profileViewData.setScopes(
+            profileViewData.getRawTokens().setScopes(
                     authorizedClient.getAccessToken().getScopes()
             );
         }
 
         if (authorizedClient.getRefreshToken() != null) {
-            profileViewData.setRefreshToken(
-                    authorizedClient.getRefreshToken().getTokenValue()
-            );
+            String refreshTokenValue =
+                    authorizedClient.getRefreshToken().getTokenValue();
 
-            profileViewData.setMaskedRefreshToken(
-                    tokenMasker.mask(
-                            authorizedClient.getRefreshToken().getTokenValue()
-                    )
+            profileViewData.getRawTokens().setRefreshToken(refreshTokenValue);
+            profileViewData.getRawTokens().setMaskedRefreshToken(
+                    tokenMasker.mask(refreshTokenValue)
             );
-
-            profileViewData.setRefreshTokenIssuedAt(
+            profileViewData.getRawTokens().setRefreshTokenIssuedAt(
                     authorizedClient.getRefreshToken().getIssuedAt()
             );
         }
 
         String idTokenValue = resolveLatestIdToken(request);
 
-        if ((profileViewData.getIdToken() == null || profileViewData.getIdToken().isBlank())
-                && idTokenValue != null
-                && !idTokenValue.isBlank()) {
-            profileViewData.setIdToken(idTokenValue);
-            profileViewData.setMaskedIdToken(tokenMasker.mask(idTokenValue));
+        if (!hasText(profileViewData.getRawTokens().getIdToken())
+                && hasText(idTokenValue)) {
+            profileViewData.getRawTokens().setIdToken(idTokenValue);
+            profileViewData.getRawTokens().setMaskedIdToken(
+                    tokenMasker.mask(idTokenValue)
+            );
         }
     }
 
@@ -209,41 +214,58 @@ public class ProfileService {
             ProfileViewData profileViewData,
             StoredTokenData tokenData
     ) {
-        profileViewData.setPrincipalName(tokenData.principalName());
-        profileViewData.setClientRegistrationId(tokenData.clientRegistrationId());
+        profileViewData.getUser().setPrincipalName(tokenData.principalName());
+        profileViewData.getUser().setClientRegistrationId(
+                tokenData.clientRegistrationId()
+        );
 
-        profileViewData.setAccessToken(tokenData.accessTokenValue());
-        profileViewData.setMaskedAccessToken(
+        profileViewData.getRawTokens().setAccessToken(
+                tokenData.accessTokenValue()
+        );
+        profileViewData.getRawTokens().setMaskedAccessToken(
                 tokenMasker.mask(tokenData.accessTokenValue())
         );
 
-        profileViewData.setRefreshToken(tokenData.refreshTokenValue());
-        profileViewData.setMaskedRefreshToken(
+        profileViewData.getRawTokens().setRefreshToken(
+                tokenData.refreshTokenValue()
+        );
+        profileViewData.getRawTokens().setMaskedRefreshToken(
                 tokenMasker.mask(tokenData.refreshTokenValue())
         );
 
-        profileViewData.setIdToken(tokenData.idTokenValue());
-        profileViewData.setMaskedIdToken(
+        profileViewData.getRawTokens().setIdToken(tokenData.idTokenValue());
+        profileViewData.getRawTokens().setMaskedIdToken(
                 tokenMasker.mask(tokenData.idTokenValue())
         );
 
-        profileViewData.setTokenType(tokenData.tokenType());
+        profileViewData.getRawTokens().setTokenType(tokenData.tokenType());
+        profileViewData.getRawTokens().setAccessTokenIssuedAt(
+                tokenData.accessTokenIssuedAt()
+        );
+        profileViewData.getRawTokens().setAccessTokenExpiresAt(
+                tokenData.accessTokenExpiresAt()
+        );
 
-        profileViewData.setAccessTokenIssuedAt(tokenData.accessTokenIssuedAt());
-        profileViewData.setAccessTokenExpiresAt(tokenData.accessTokenExpiresAt());
         if (tokenData.accessTokenExpiresAt() != null) {
-            long expiresIn = java.time.Duration.between(
-                    java.time.Instant.now(),
+            long expiresIn = Duration.between(
+                    Instant.now(),
                     tokenData.accessTokenExpiresAt()
             ).toSeconds();
 
-            profileViewData.setAccessTokenExpiresIn(Math.max(expiresIn, 0));
+            profileViewData.getRawTokens().setAccessTokenExpiresIn(
+                    Math.max(expiresIn, 0)
+            );
         }
-        profileViewData.setRefreshTokenIssuedAt(tokenData.refreshTokenIssuedAt());
-        profileViewData.setRefreshTokenExpiresAt(tokenData.refreshTokenExpiresAt());
 
-        profileViewData.setScopes(tokenData.scopes());
-        profileViewData.setLastUpdatedAt(tokenData.savedAt());
+        profileViewData.getRawTokens().setRefreshTokenIssuedAt(
+                tokenData.refreshTokenIssuedAt()
+        );
+        profileViewData.getRawTokens().setRefreshTokenExpiresAt(
+                tokenData.refreshTokenExpiresAt()
+        );
+        profileViewData.getRawTokens().setScopes(tokenData.scopes());
+
+        profileViewData.getValidation().setLastUpdatedAt(tokenData.savedAt());
     }
 
     private String resolveLatestIdToken(HttpServletRequest request) {
@@ -262,46 +284,56 @@ public class ProfileService {
     }
 
     private void fillJwtPayloads(ProfileViewData profileViewData) {
-        String accessToken = profileViewData.getAccessToken();
-        String idToken = profileViewData.getIdToken();
+        String accessToken = profileViewData.getRawTokens().getAccessToken();
+        String idToken = profileViewData.getRawTokens().getIdToken();
 
         Map<String, Object> accessTokenPayload =
                 jwtPayloadDecoder.decodePayload(accessToken);
-
         Map<String, Object> idTokenPayload =
                 jwtPayloadDecoder.decodePayload(idToken);
 
-        profileViewData.setAccessTokenPayload(accessTokenPayload);
-        profileViewData.setIdTokenPayload(idTokenPayload);
+        profileViewData.getParsedTokens().setAccessTokenPayload(
+                accessTokenPayload
+        );
+        profileViewData.getParsedTokens().setIdTokenPayload(idTokenPayload);
 
-        profileViewData.setAccessTokenJti(
+        profileViewData.getParsedTokens().setAccessTokenJti(
                 getStringClaim(accessTokenPayload, "jti")
         );
-
-        profileViewData.setIdTokenJti(
+        profileViewData.getParsedTokens().setIdTokenJti(
                 getStringClaim(idTokenPayload, "jti")
         );
 
-        if (profileViewData.getSubject() == null) {
-            profileViewData.setSubject(getStringClaim(idTokenPayload, "sub"));
+        if (profileViewData.getUser().getSubject() == null) {
+            profileViewData.getUser().setSubject(
+                    getStringClaim(idTokenPayload, "sub")
+            );
         }
 
-        if (profileViewData.getEmail() == null) {
-            profileViewData.setEmail(getStringClaim(idTokenPayload, "email"));
+        if (profileViewData.getUser().getEmail() == null) {
+            profileViewData.getUser().setEmail(
+                    getStringClaim(idTokenPayload, "email")
+            );
         }
 
-        if (profileViewData.getDisplayName() == null) {
+        if (profileViewData.getUser().getDisplayName() == null) {
             String name = getStringClaim(idTokenPayload, "name");
 
             if (name == null) {
-                name = getStringClaim(idTokenPayload, "preferred_username");
+                name = getStringClaim(
+                        idTokenPayload,
+                        "preferred_username"
+                );
             }
 
-            profileViewData.setDisplayName(name);
+            profileViewData.getUser().setDisplayName(name);
         }
     }
 
-    private String getStringClaim(Map<String, Object> payload, String claimName) {
+    private String getStringClaim(
+            Map<String, Object> payload,
+            String claimName
+    ) {
         if (payload == null || payload.isEmpty()) {
             return null;
         }
@@ -313,5 +345,9 @@ public class ProfileService {
         }
 
         return String.valueOf(value);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }
